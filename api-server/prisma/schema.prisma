@@ -9,16 +9,12 @@ datasource db {
 
 model User {
   id        String      @id @default(uuid())
-  socialId  String   @unique
+  email     String   @unique
+  password  String?   @db.VarChar(50)
+  name      String?  @db.VarChar(50)
+  phone     String?   @db.VarChar(20)
+  provider  String   @db.VarChar(50)
+  provider_id String @db.VarChar(50)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
-  email     String   @unique
-  name      String?  @db.VarChar(50)
-  provider  String   @db.VarChar(50)
-  role      Role     @default(USER)
-}
-
-enum Role {
-  ADMIN
-  USER
 }

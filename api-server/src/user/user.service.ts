@@ -7,15 +7,25 @@ export class UserService {
   constructor(private prisma: PrismaService) {}
 
   async createUser(data: Prisma.UserCreateInput): Promise<User> {
+    const { email, name, provider_id, provider } = data;
+    const userData = {
+      email,
+      name,
+      password: '1234',
+      phone: '01012345678',
+      provider,
+      provider_id: provider_id,
+    };
+
     return this.prisma.user.create({
-      data,
+      data: userData,
     });
   }
 
-  async findBySocialId(socialId: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({
       where: {
-        socialId,
+        email,
       },
     });
 

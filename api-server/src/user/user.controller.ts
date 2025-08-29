@@ -8,7 +8,7 @@ import {
 import { UserService } from './user.service';
 import { ApiResponse } from '@/common/dto/response.dto';
 import { CurrentUser } from '@/common/decorators/user.decorator';
-import { User } from '@shared/types/user';
+import { User } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('user')

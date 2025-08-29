@@ -1,16 +1,30 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { PrismaService } from '@/database/prisma.service';
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { NestFactory, Reflector } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import { AppModule } from './app.module';
+import { ApiTransformInterceptor } from './common/interceptors/api.transform.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const config = new DocumentBuilder()
+    .setTitle('Monkey Trading API Server')
+    .setDescription('Monkey Trading API Server')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
   app.use(cookieParser());
   const prismaService = app.get(PrismaService);
   await prismaService.enableShutdownHooks();
   app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(new ApiTransformInterceptor(new Reflector()));
   const configService = app.get(ConfigService);
   const corsOrigin = configService.get<string>('CORS_ORIGIN');
 
@@ -22,6 +36,6 @@ async function bootstrap() {
     exposedHeaders: ['Set-Cookie'],
   });
 
-  await app.listen(process.env.PORT ?? 8000);
+  await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

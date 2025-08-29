@@ -16,15 +16,17 @@ export class GoogleClient {
 
   async getToken(code: string): Promise<string> {
     const tokenUrl = 'https://oauth2.googleapis.com/token';
-    const { data } = await axios.post(tokenUrl, {
+
+    const data = {
       code,
       client_id: this.configService.get<string>('GOOGLE_CLIENT_ID'),
       client_secret: this.configService.get<string>('GOOGLE_CLIENT_SECRET'),
       redirect_uri: this.configService.get<string>('GOOGLE_REDIRECT_URI'),
       grant_type: 'authorization_code',
-    });
+    };
 
-    return data.access_token;
+    const response = await axios.post<{ access_token: string }>(tokenUrl, data);
+    return response.data?.access_token;
   }
 
   async getUserInfo(accessToken: string) {
@@ -36,7 +38,7 @@ export class GoogleClient {
     );
 
     return {
-      socialId: data.id,
+      provider_id: data.id,
       email: data.email,
       name: data.name,
       provider: 'google' as const,

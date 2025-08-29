@@ -4,24 +4,23 @@
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
-    "esModuleInterop": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
+    "target": "es2017",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "src",
+    "baseUrl": "./src",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
+    "strict": false,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
-
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./*"],
-      "@shared/*": ["../../shared/*"]
+      "@/*": ["*"],
     }
   }
 }

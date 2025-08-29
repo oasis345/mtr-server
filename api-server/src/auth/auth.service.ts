@@ -26,7 +26,7 @@ export class AuthService {
       const accessToken = await this.googleClient.getToken(code);
       const userInfo = await this.googleClient.getUserInfo(accessToken);
 
-      let user = await this.userService.findBySocialId(userInfo.socialId);
+      let user = await this.userService.findByEmail(userInfo.email);
       if (!user) {
         user = await this.userService.createUser(userInfo);
       }
@@ -36,7 +36,7 @@ export class AuthService {
       throw new HttpException(
         {
           statusCode: HttpStatus.BAD_REQUEST,
-          message: 'Google login failed: ' + error.message,
+          message: 'Google login failed',
         },
         HttpStatus.BAD_REQUEST,
       );
@@ -64,7 +64,7 @@ export class AuthService {
 
     return this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: '30s',
+      expiresIn: '15m',
     });
   }
 
@@ -107,12 +107,22 @@ export class AuthService {
     }
   }
 
-  setTokenCookie(response: Response, token: string, tokenName: string) {
+  setTokenCookie({
+    response,
+    token,
+    tokenName,
+    httpOnly = true,
+  }: {
+    response: Response;
+    token: string;
+    tokenName: string;
+    httpOnly?: boolean;
+  }) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
     const domain = this.configService.get<string>('CORS_ORIGIN'); // 예: .yourdomain.com
 
     response.cookie(tokenName, token, {
-      httpOnly: true,
+      httpOnly: httpOnly,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax', // production에서는 'none'으로 설정
       domain: isProduction ? domain : undefined, // production에서만 domain 설정

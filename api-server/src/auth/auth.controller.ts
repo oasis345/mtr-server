@@ -14,16 +14,18 @@ export class AuthController {
   async googleCallback(@Query('code') code: string, @Res() res: Response) {
     const tokens = await this.authService.googleLogin(code);
 
-    this.authService.setTokenCookie(
-      res,
-      tokens.accessToken,
-      'isnow_access_token',
-    );
-    this.authService.setTokenCookie(
-      res,
-      tokens.refreshToken,
-      'isnow_refresh_token',
-    );
+    this.authService.setTokenCookie({
+      response: res,
+      token: tokens.accessToken,
+      tokenName: 'mtr_access_token',
+      httpOnly: false,
+    });
+
+    this.authService.setTokenCookie({
+      response: res,
+      token: tokens.refreshToken,
+      tokenName: 'mtr_refresh_token',
+    });
 
     res.redirect(
       `${this.configService.get('CORS_ORIGIN')}/auth/google/callback`,
@@ -36,17 +38,6 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const tokens = await this.authService.refreshToken(refreshToken);
-
-    this.authService.setTokenCookie(
-      res,
-      tokens.accessToken,
-      'isnow_access_token',
-    );
-    this.authService.setTokenCookie(
-      res,
-      tokens.refreshToken,
-      'isnow_refresh_token',
-    );
 
     return res.status(200).json({
       accessToken: tokens.accessToken,

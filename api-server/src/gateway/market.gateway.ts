@@ -1,83 +1,43 @@
-import {
-  WebSocketGateway,
-  WebSocketServer,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-} from '@nestjs/websockets';
+import { Logger, UsePipes, ValidationPipe } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
+import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { RedisService } from '@/redis/redis.service';
-import { Logger } from '@nestjs/common';
+import { SubscriptionService } from './subscription.service';
+import { MarketSubscription } from './subscription/market.subscription';
 
-@WebSocketGateway({
-  cors: {
-    origin: process.env.CORS_ORIGIN,
-    credentials: true,
-  },
-  transports: ['websocket'],
-  path: '/socket.io/',
-  pingInterval: 1000,
-  pingTimeout: 3000,
-  maxHttpBufferSize: 1e6,
-})
-export class MarketGateway implements OnGatewayConnection, OnGatewayDisconnect {
+@WebSocketGateway({ namespace: '/market', cors: { origin: '*' } })
+export class MarketGateway {
   @WebSocketServer()
-  private server: Server;
-  private connectedClients: Set<string> = new Set();
+  io: Server;
+
   private readonly logger = new Logger(MarketGateway.name);
+  constructor(private readonly subscriptionService: SubscriptionService) {}
 
-  constructor(private readonly redisService: RedisService) {}
+  @UsePipes(new ValidationPipe())
+  @SubscribeMessage('market-subscription')
+  async handleSubscription(@ConnectedSocket() client: Socket, @MessageBody() body: MarketSubscription): Promise<any> {
+    const { action, payload } = body;
 
-  async handleConnection(client: Socket) {
-    this.connectedClients.add(client.id);
-    this.logger.log(`🔌 Client connected: ${client.id}`);
+    const channel = this.subscriptionService.subscribe(client.id, payload.channel);
 
-    await this.sendAllTickers(client);
-  }
+    if (action === 'subscribe') {
+      await client.join(channel);
+      return { event: 'subscribed', channel };
+    }
 
-  handleDisconnect(client: Socket) {
-    this.connectedClients.delete(client.id);
-    this.logger.warn(`❌ Client disconnected: ${client.id}`);
-  }
-
-  async sendAllTickers(client: Socket) {
-    try {
-      const data = await this.redisService.get('ticker-upbit-*');
-
-      if (data) {
-        client.emit('ticker', JSON.parse(data));
-        this.logger.debug(`📤 Sent tickers to client ${client.id}`);
-      } else {
-        client.emit('ticker', { message: '데이터 없음' });
-        this.logger.warn(`⚠️ Not found Tickers`);
-      }
-    } catch (error) {
-      this.logger.error(
-        `🔥 Error sending ticker to client: ${error.message}`,
-        error,
-      );
-      client.emit('ticker', { message: '티커 조회 오류 발생' });
+    if (action === 'unsubscribe') {
+      await client.leave(channel);
+      return { event: 'unsubscribed', channel };
     }
   }
 
-  // async sendTickerToClient(client: any, key: string) {
-  //   try {
-  //     const data = await this.redisService.get(key);
+  @OnEvent('marketData.update')
+  handlePublicMarketDataUpdate(payload: { channel: string; data: any }) {
+    this.io.to(payload.channel).emit('update', payload);
+  }
 
-  //     if (data) {
-  //       client.emit('ticker', JSON.parse(data));
-  //       this.logger.debug(
-  //         `📤 Sent ticker to client ${client.id} | key: ${key}`,
-  //       );
-  //     } else {
-  //       client.emit('ticker', { message: '데이터 없음' });
-  //       this.logger.warn(`⚠️ No data found for key: ${key}`);
-  //     }
-  //   } catch (error) {
-  //     this.logger.error(
-  //       `🔥 Error sending ticker to client: ${error.message}`,
-  //       error,
-  //     );
-  //     client.emit('ticker', { message: '티커 조회 오류 발생' });
-  //   }
-  // }
+  @OnEvent('marketData.symbol.update')
+  handlePrivateMarketDataUpdate(payload: { symbol: string; data: any }) {
+    this.io.to(payload.symbol).emit('update', payload);
+  }
 }
