@@ -5,8 +5,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class FmpClient {
   private readonly apiKey: string;
-  private readonly baseUrl = 'https://financialmodelingprep.com/api/v3';
-  private readonly stableUrl = 'https://financialmodelingprep.com/stable';
+  private readonly baseUrl = 'https://financialmodelingprep.com/stable';
 
   constructor(
     private readonly httpService: CustomHttpService,

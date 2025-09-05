@@ -1,8 +1,10 @@
-import { AssetType, type Asset, type Stock, type StockQueryParams } from '@/financial/types';
-import { Injectable } from '@nestjs/common';
-import { BaseFinancialProvider } from '../financial.provider.js';
-import { FmpClient } from './fmp.client.js';
+import { Asset, AssetQueryParams, AssetType, type Stock, type StockQueryParams } from '@/financial/types';
+import { FMP_FREE_TIER_SYMBOLS } from '@/financial/types/fmp.types';
+import { Injectable, Logger } from '@nestjs/common';
+import { BaseFinancialProvider } from '../financial.provider';
+import { FmpClient } from './fmp.client';
 
+// 1. FMP API가 반환하는 다양한 형태의 raw 데이터를 포괄하는 타입을 정의합니다.
 type FmpRawStockData = {
   symbol: string;
   name?: string;
@@ -16,43 +18,18 @@ type FmpRawStockData = {
 
 @Injectable()
 export class FmpStockProvider extends BaseFinancialProvider {
+  assetType = AssetType.STOCK;
+  getQuotes(params: AssetQueryParams): Promise<Asset[]> {
+    throw new Error('Method not implemented.');
+  }
+  private readonly logger = new Logger(FmpStockProvider.name);
+
   constructor(private readonly fmpClient: FmpClient) {
     super();
   }
 
-  /**
-   * FMP의 stock-screener API에 맞는 파라미터를 생성하는 헬퍼 메서드입니다.
-   * 정렬 기준(sortBy)과 순서(order)를 동적으로 추가할 수 있습니다.
-   */
-  private createScreenerParams(params: StockQueryParams): URLSearchParams {
-    const { limit = 100, country = 'US', exchange, orderBy = params.dataType + ':desc' } = params;
-    const queryParams = new URLSearchParams();
-
-    if (limit) queryParams.set('limit', limit.toString());
-    if (country) queryParams.set('country', country);
-    if (exchange) {
-      // 파라미터로 exchange가 들어오면 그대로 사용합니다.
-      queryParams.set('exchange', exchange);
-    } else if (country === 'US') {
-      // country가 'US'인 경우, 미국의 대표 거래소들을 지정해줍니다.
-      queryParams.set('exchange', 'NASDAQ,NYSE,AMEX');
-    }
-
-    queryParams.set('orderby', orderBy);
-
-    return queryParams;
-  }
-
-  getAssets(params: StockQueryParams): Promise<Stock[]> {
-    throw new Error('Method not implemented.');
-  }
-
-  normalizeToAsset(rawData: FmpRawStockData): Asset {
-    // FMP는 'name'과 'companyName' 필드를 혼용하므로 둘 다 확인합니다.
+  normalizeToAsset(rawData: FmpRawStockData): Stock {
     const name = rawData.companyName || rawData.name || '';
-
-    // 전일 대비 변동(change)과 등락률(changesPercentage)은 일부 API에만 존재하므로,
-    // 값이 없으면 0으로 기본값을 설정합니다.
     const change = rawData.change ?? 0;
     const changesPercentage = rawData.changesPercentage ?? 0;
 
@@ -64,35 +41,58 @@ export class FmpStockProvider extends BaseFinancialProvider {
       change,
       changesPercentage,
       volume: rawData.volume ?? null,
-      marketCap: rawData.marketCap ?? null,
     };
   }
 
-  async getTopByMarketCap(params: StockQueryParams): Promise<Asset[]> {
-    const screenerParams = this.createScreenerParams(params);
-    screenerParams.set('isEtf', 'false');
-    screenerParams.set('isFund', 'false');
-    const screenerData = await this.fmpClient.get<FmpRawStockData[]>('stock-screener', screenerParams);
+  getAssets(params: StockQueryParams): Promise<Stock[]> {
+    throw new Error('Method not implemented.');
+  }
 
-    if (screenerData.length === 0) {
+  async getMostActive(params: StockQueryParams): Promise<Stock[]> {
+    try {
+      // const allStocks = await this.fmpClient.get<FmpStockListItem[]>('stock/list');
+      // const usStocks = allStocks.filter(
+      //   stock =>
+      //     stock.exchangeShortName === 'NYSE' ||
+      //     stock.exchangeShortName === 'NASDAQ' ||
+      //     stock.exchangeShortName === 'AMEX',
+      // );
+
+      // if (usStocks.length === 0) {
+      //   this.logger.warn('No stocks found from the stock list.');
+      //   return [];
+      // }
+
+      // const symbols = usStocks.map(stock => stock.symbol);
+      const quoteData = await this.fmpClient.get<FmpRawStockData[]>(`quote?symbol=${FMP_FREE_TIER_SYMBOLS.join(',')}`);
+
+      const sortedByMarketCap = quoteData
+        .filter(stock => stock.marketCap && stock.marketCap > 0)
+        .sort((a, b) => b.marketCap - a.marketCap);
+
+      // 4. 변경된 메서드 이름을 사용하여 명시적으로 매핑합니다.
+      const topStocks = sortedByMarketCap.slice(0, params.limit).map(stock => this.normalizeToAsset(stock));
+
+      this.logger.log(`Successfully fetched and sorted ${topStocks.length} top market cap stocks.`);
+      return topStocks;
+    } catch (error: any) {
       return [];
     }
-
-    const symbols = screenerData.map(stock => stock.symbol);
-
-    const quoteData = await this.fmpClient.get<FmpRawStockData[]>(`quote/${symbols.join(',')}`);
-    return quoteData.map((rawData: FmpRawStockData) => this.normalizeToAsset(rawData));
   }
 
-  async getTopByVolume(params: StockQueryParams): Promise<Asset[]> {
-    return this.fmpClient.get<Stock[]>('stock_market/actives');
+  // 5. 다른 메서드들도 raw 데이터를 받아와 정규화하는 안전한 방식으로 수정합니다.
+  async getTopByVolume(params: StockQueryParams): Promise<Stock[]> {
+    const rawData = await this.fmpClient.get<FmpRawStockData[]>('stock_market/actives');
+    return rawData.slice(0, params.limit).map(stock => this.normalizeToAsset(stock));
   }
 
-  async getTopGainers(params: StockQueryParams): Promise<Asset[]> {
-    return this.fmpClient.get<Stock[]>('stock_market/gainers');
+  async getTopGainers(params: StockQueryParams): Promise<Stock[]> {
+    const rawData = await this.fmpClient.get<FmpRawStockData[]>('stock_market/gainers');
+    return rawData.slice(0, params.limit).map(stock => this.normalizeToAsset(stock));
   }
 
-  async getTopLosers(params: StockQueryParams): Promise<Asset[]> {
-    return this.fmpClient.get<Stock[]>('stock_market/losers');
+  async getTopLosers(params: StockQueryParams): Promise<Stock[]> {
+    const rawData = await this.fmpClient.get<FmpRawStockData[]>('stock_market/losers');
+    return rawData.slice(0, params.limit).map(stock => this.normalizeToAsset(stock));
   }
 }

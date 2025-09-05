@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class AlpacaClient implements OnModuleDestroy {
   private readonly logger = new Logger(AlpacaClient.name);
-  private alpacaClient: Alpaca;
+  private readonly alpaca: Alpaca;
 
   constructor(private readonly configService: ConfigService) {
     const keyId = this.configService.get<string>('ALPACA_API_KEY');
@@ -15,16 +15,26 @@ export class AlpacaClient implements OnModuleDestroy {
       throw new Error('Alpaca API Key and Secret Key must be configured in .env file.');
     }
 
-    this.alpacaClient = new Alpaca({
+    this.alpaca = new Alpaca({
       keyId: keyId,
       secretKey: secretKey,
-      feed: 'iex', // 무료 플랜에서 사용할 수 있는 IEX 거래소 데이터를 의미합니다.
-      paper: true, // true: 가상 매매, false: 실거래
+      feed: 'iex', // 무료 플랜은 IEX 거래소 데이터만 사용 가능
+      paper: true, // 가상 매매 계정 사용
     });
   }
 
+  /**
+   * 주식 데이터 웹소켓 스트림 객체를 반환합니다.
+   */
   get stockStream() {
-    return this.alpacaClient.data_ws;
+    return this.alpaca.data_ws;
+  }
+
+  /**
+   * 암호화폐 데이터 웹소켓 스트림 객체를 반환합니다. (향후 확장용)
+   */
+  get cryptoStream() {
+    return this.alpaca.crypto_stream_v1beta3;
   }
 
   /**
@@ -33,5 +43,6 @@ export class AlpacaClient implements OnModuleDestroy {
   onModuleDestroy() {
     this.logger.log('Disconnecting Alpaca streams...');
     this.stockStream?.disconnect();
+    this.cryptoStream?.disconnect();
   }
 }
