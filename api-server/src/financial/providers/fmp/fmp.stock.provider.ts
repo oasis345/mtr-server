@@ -19,7 +19,7 @@ type FmpRawStockData = {
 @Injectable()
 export class FmpStockProvider extends BaseFinancialProvider {
   assetType = AssetType.STOCK;
-  getQuotes(params: AssetQueryParams): Promise<Asset[]> {
+  getSnapshots(params: AssetQueryParams): Promise<Asset[]> {
     throw new Error('Method not implemented.');
   }
   private readonly logger = new Logger(FmpStockProvider.name);

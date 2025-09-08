@@ -6,7 +6,7 @@ import { FinancialController } from './financial.controller';
 import { FinancialService } from './financial.service';
 import { AlpacaClient } from './providers/alpaca/alpaca.client';
 import { AlpacaStockProvider } from './providers/alpaca/alpaca.stock.provider';
-import { FinancialProvider } from './providers/financial.provider';
+import { FINANCIAL_PROVIDER, FinancialProvider } from './providers/financial.provider';
 import { FmpClient } from './providers/fmp/fmp.client';
 import { FmpStockProvider } from './providers/fmp/fmp.stock.provider';
 import { YahooStockProvider } from './providers/yahoo/yahoo.stock.provider';
@@ -29,7 +29,7 @@ import { AssetType } from './types';
 
     // 3. (핵심) GatewayModule과 동일한 동적 팩토리 패턴을 적용합니다.
     {
-      provide: 'FINANCIAL_PROVIDER',
+      provide: FINANCIAL_PROVIDER,
       // 4. useFactory는 inject에 명시된 Provider들의 '인스턴스'를 배열로 주입받습니다.
       useFactory: (...providers: FinancialProvider[]) => {
         // 참고: 현재 모든 Provider의 assetType이 'STOCK'으로 동일하므로,

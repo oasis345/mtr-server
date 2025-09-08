@@ -30,14 +30,14 @@ export interface AssetQueryParams {
 // ✅ 범용 자산 인터페이스
 export interface Asset {
   symbol: string;
-  price: number;
-  volume: number;
   name?: string;
+  assetType: AssetType;
+  exchange?: string;
+  price?: number;
+  volume?: number;
   change?: number;
   changesPercentage?: number;
-  exchange?: string;
-  exchangeShortName?: string;
   currency?: string; // USD, KRW, BTC 등
-  assetType: AssetType;
+  previousClose?: number; // 전일 종가
   timestamp?: Date;
 }

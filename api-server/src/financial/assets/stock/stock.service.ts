@@ -1,7 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
-import { FinancialProvider } from '../../providers/financial.provider';
+import { FINANCIAL_PROVIDER, FinancialProvider } from '../../providers/financial.provider';
 import { AssetQueryParams, AssetType, MarketDataType } from '../../types';
 import { AssetService } from '../asset.service';
 
@@ -17,11 +17,11 @@ export class StockService extends AssetService {
 
   protected readonly cacheableDataTypes = new Set(Object.values(MarketDataType));
   protected getCacheKey(params: AssetQueryParams): string {
-    return `stock:${params.dataType}`;
+    return `stocks:${params.dataType}`;
   }
 
   constructor(
-    @Inject('FINANCIAL_PROVIDER') protected readonly providerMap: Map<AssetType, FinancialProvider>,
+    @Inject(FINANCIAL_PROVIDER) protected readonly providerMap: Map<AssetType, FinancialProvider>,
     @Inject(CACHE_MANAGER) cacheManager: Cache,
   ) {
     super(cacheManager);

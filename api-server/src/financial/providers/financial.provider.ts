@@ -1,10 +1,13 @@
 import type { Asset, AssetQueryParams, AssetType } from '../types';
 
+export const FINANCIAL_PROVIDER = 'FINANCIAL_PROVIDER';
+
 export interface FinancialProvider {
   assetType: AssetType;
+  // 자산 조회
   getAssets(params: AssetQueryParams): Promise<Asset[]>;
-  // 종목 조회
-  getQuotes(params: AssetQueryParams): Promise<Asset[]>;
+  // 종목 스냅샷 조회
+  getSnapshots(params: AssetQueryParams): Promise<Asset[]>;
   // 가장 활발한 종목
   getMostActive(params: AssetQueryParams): Promise<Asset[]>;
   //상승 종목
@@ -17,7 +20,7 @@ export abstract class BaseFinancialProvider implements FinancialProvider {
   abstract assetType: AssetType;
   abstract normalizeToAsset(data: any): Asset;
   abstract getAssets(params: AssetQueryParams): Promise<Asset[]>;
-  abstract getQuotes(params: AssetQueryParams): Promise<Asset[]>;
+  abstract getSnapshots(params: AssetQueryParams): Promise<Asset[]>;
   abstract getMostActive(params: AssetQueryParams): Promise<Asset[]>;
   abstract getTopGainers(params: AssetQueryParams): Promise<Asset[]>;
   abstract getTopLosers(params: AssetQueryParams): Promise<Asset[]>;

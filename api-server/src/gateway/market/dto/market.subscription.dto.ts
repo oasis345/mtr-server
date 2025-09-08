@@ -4,7 +4,6 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsEnum,
-  IsIn,
   IsNotEmptyObject,
   IsString,
   ValidateIf,
@@ -16,6 +15,9 @@ import {
 export enum MarketChannel {
   // 'Top 100'과 같은 방송(Broadcast)형 구독
   MARKET_CAP = 'marketCap',
+  GAINERS = 'gainers',
+  LOSERS = 'losers',
+
   // 개별 종목(Symbol) 구독
   SYMBOL = 'symbol',
 }
@@ -40,9 +42,6 @@ export class MarketPayload {
 
 // 4. 최종적으로 클라이언트가 보내는 전체 요청의 구조입니다.
 export class MarketSubscription {
-  @IsIn(['subscribe', 'unsubscribe'])
-  action: 'subscribe' | 'unsubscribe';
-
   // payload 객체 자체와 그 내부 필드들의 유효성 검사를 모두 수행합니다.
   @ValidateNested()
   @IsNotEmptyObject()

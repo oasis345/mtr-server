@@ -38,7 +38,7 @@ export abstract class AssetService implements OnModuleInit {
     ]);
   }
 
-  async refreshCache(dataType: MarketDataType, limit: number = 50): Promise<void> {
+  async refreshCache(dataType: MarketDataType, limit: number = 10): Promise<void> {
     try {
       const params: AssetQueryParams = { assetType: this.assetType, dataType, limit };
 
@@ -57,13 +57,48 @@ export abstract class AssetService implements OnModuleInit {
       const method = provider[methodName] as Function;
       const freshData = await method.call(provider, params);
 
+      // 🎯 캐시 저장 전에 name 보강
+      const enrichedData = await this.enrichWithNames(freshData);
       const cacheKey = this.getCacheKey(params);
 
-      await this.cacheManager.set(cacheKey, freshData, CacheTTL.ONE_HOUR);
-      this.logger.log(`✅ Cache saved: ${cacheKey} (${freshData.length} items)`);
+      await this.cacheManager.set(cacheKey, enrichedData, CacheTTL.ONE_HOUR);
+      this.logger.log(`✅ Cache saved with names: ${cacheKey} (${enrichedData.length} items)`);
     } catch (error) {
       this.logger.error(`Failed to refresh cache for ${this.assetType}:${dataType}`, error);
     }
+  }
+
+  protected async getSymbolNameMap(): Promise<Map<string, string>> {
+    const cacheKey = this.getCacheKey({
+      assetType: this.assetType,
+      dataType: MarketDataType.ASSETS,
+    });
+
+    const assets = await this.cacheManager.get<Asset[]>(cacheKey);
+    const symbolNameMap = new Map<string, string>();
+
+    if (assets) {
+      assets.forEach(asset => {
+        if (asset.name && asset.name !== asset.symbol) {
+          symbolNameMap.set(asset.symbol, asset.name);
+        }
+      });
+    }
+
+    return symbolNameMap;
+  }
+
+  protected async enrichWithNames(assets: Asset[]): Promise<Asset[]> {
+    const symbolNameMap = await this.getSymbolNameMap();
+    return assets.map(asset => {
+      const enrichedName = symbolNameMap.get(asset.symbol);
+      const finalName = enrichedName || asset.name || asset.symbol;
+
+      return {
+        ...asset,
+        name: finalName,
+      };
+    });
   }
 
   async getMarketData(params: AssetQueryParams): Promise<Asset[]> {
@@ -75,6 +110,7 @@ export abstract class AssetService implements OnModuleInit {
       const cachedData = await this.cacheManager.get<Asset[]>(cacheKey);
       if (cachedData) {
         this.logger.debug(`✅ Cache hit: ${cacheKey}`);
+        // 🎯 이미 name이 보강된 데이터이므로 그대로 반환
         return cachedData;
       }
     }
@@ -95,12 +131,13 @@ export abstract class AssetService implements OnModuleInit {
     }
 
     const freshData = await method.call(provider, params);
+    const enrichedData = await this.enrichWithNames(freshData);
 
     if (isCacheable) {
       const cacheKey = this.getCacheKey(params);
-      await this.cacheManager.set(cacheKey, freshData, CacheTTL.ONE_HOUR);
+      await this.cacheManager.set(cacheKey, enrichedData, CacheTTL.ONE_HOUR);
     }
 
-    return freshData;
+    return enrichedData;
   }
 }

@@ -1,76 +1,93 @@
 import { Asset, AssetType } from '@/financial/types';
-import { AlpacaStreamClient } from '@alpacahq/alpaca-trade-api/dist/resources/websockets';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter } from 'events';
-import { StreamProvider } from '../../types/provider.interface';
-import { AlpacaClient } from './alpaca.client';
-
-// Alpaca API가 반환하는 raw trade 데이터의 타입 (필요한 것만 정의)
-interface AlpacaRawTrade {
-  Symbol: string;
-  Price: number;
-  Size: number;
-  Timestamp: string;
-}
+import type { StreamProvider } from '../../types/provider.interface';
+import { AlpacaStreamClient } from './alpaca.stream.client';
 
 @Injectable()
-export class AlpacaStockStreamProvider extends EventEmitter implements StreamProvider {
+export class AlpacaStockStreamProvider implements StreamProvider, OnModuleInit {
   public readonly assetType = AssetType.STOCK;
   private readonly logger = new Logger(AlpacaStockStreamProvider.name);
-  private socket: AlpacaStreamClient;
+  private readonly streamClient: AlpacaStreamClient;
+  private readonly alpacaEvents = new EventEmitter();
 
-  constructor(private readonly alpacaClient: AlpacaClient) {
-    super();
-    this.socket = this.alpacaClient.stockStream;
-    this.connectAndSetupListeners();
+  constructor(private readonly configService: ConfigService) {
+    // 🎯 주식 스트림 URL로 클라이언트 인스턴스 생성
+    const stockStreamUrl = 'wss://stream.data.alpaca.markets/v2/iex';
+    this.streamClient = new AlpacaStreamClient(configService, stockStreamUrl);
   }
 
-  /**
-   * Alpaca의 raw 데이터를 우리 시스템의 표준 'Stock' 타입으로 변환합니다.
-   */
-  public normalizeToAsset(trade: AlpacaRawTrade): Asset {
+  onModuleInit() {
+    this.streamClient.connect();
+    this.setupListeners();
+  }
+
+  private setupListeners(): void {
+    this.streamClient.on('message', (message: any) => {
+      // 🎯 인증 성공/실패 로그 추가
+      if (message.T === 'success' && message.msg === 'authenticated') {
+        this.logger.log('✅ Alpaca stream authenticated successfully.');
+      }
+
+      if (message.T === 'error') {
+        this.logger.error(`❌ Alpaca Error: ${message.msg} (code: ${message.code})`);
+      }
+
+      // 데이터 처리
+      if (message.T === 't') {
+        // Trades
+        console.log(message);
+        const asset = this.normalizeToAsset(message);
+        this.alpacaEvents.emit('data', asset); // 내부 이벤트만 발행
+      }
+
+      if (message.T === 'subscription') {
+        this.logger.log(`✅ Alpaca stream subscribed to ${message.S}`);
+      }
+    });
+
+    this.streamClient.on('close', () => this.logger.warn('Alpaca stream closed.'));
+    this.streamClient.on('error', error => this.logger.error('Alpaca stream error:', error));
+  }
+
+  public normalizeToAsset(trade: any): Asset {
     return {
       assetType: AssetType.STOCK,
-      symbol: trade.Symbol,
-      price: trade.Price,
-      // 참고: trade.Size는 해당 거래의 체결량이며, 일일 총 거래량과는 다릅니다.
-      volume: trade.Size,
-      timestamp: new Date(trade.Timestamp),
+      symbol: trade.S,
+      price: trade.p,
+      volume: trade.s,
+      timestamp: new Date(trade.t),
     };
   }
 
-  private connectAndSetupListeners(): void {
-    this.socket.onConnect(() => {
-      this.logger.log('Connected to Alpaca Stock Stream.');
-    });
-
-    this.socket.onDisconnect(() => {
-      this.logger.warn('Disconnected from Alpaca Stock Stream.');
-    });
-
-    // ✨ [수정] onStockTrade -> onStockTrades (복수형)
-    this.socket.onStockTrades((trade: AlpacaRawTrade) => {
-      const standardizedData = this.normalizeToAsset(trade);
-      // 'data' 이벤트를 외부로 발행(emit)합니다.
-      this.emit('data', standardizedData);
-    });
-
-    this.socket.onError(err => {
-      this.logger.error('Alpaca Stock Stream Error:', err);
-    });
-
-    this.socket.connect();
-  }
-
   public subscribe(symbols: string[]): void {
-    this.logger.log(`Subscribing to stock trades: [${symbols.join(', ')}]`);
-    // ✨ [수정] subscribeForTrades(symbols) -> subscribe({ trades: symbols })
-    this.socket.subscribe({ trades: symbols });
+    this.logger.log(`Subscribing to stock data: [${symbols.join(', ')}]`);
+    this.streamClient.send(
+      JSON.stringify({
+        action: 'subscribe',
+        trades: symbols,
+        quotes: symbols, // 호가 정보도 구독
+      }),
+    );
   }
 
   public unsubscribe(symbols: string[]): void {
-    this.logger.log(`Unsubscribing from stock trades: [${symbols.join(', ')}]`);
-    // ✨ [수정] unsubscribeFromTrades(symbols) -> unsubscribe({ trades: symbols })
-    this.socket.unsubscribe({ trades: symbols });
+    this.logger.log(`Unsubscribing from stock data: [${symbols.join(', ')}]`);
+    this.streamClient.send(
+      JSON.stringify({
+        action: 'unsubscribe',
+        trades: symbols,
+        quotes: symbols,
+      }),
+    );
+  }
+
+  onData(handler: (asset: Asset) => void): void {
+    this.alpacaEvents.on('data', handler);
+  }
+
+  offData(handler: (asset: Asset) => void): void {
+    this.alpacaEvents.off('data', handler);
   }
 }
