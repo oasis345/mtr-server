@@ -1,7 +1,9 @@
 import { CustomHttpModule } from '@/common/http/http.module';
 import { AssetType } from '@/common/types/asset.types';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { Cache } from 'cache-manager';
 import { CryptoService } from './assets/crypto/crypto.service';
 import { StockService } from './assets/stock/stock.service';
 import { FinancialController } from './financial.controller';
@@ -10,9 +12,9 @@ import { AlpacaClient } from './providers/alpaca/alpaca.client';
 import { AlpacaStockProvider } from './providers/alpaca/alpaca.stock.provider';
 import { FINANCIAL_PROVIDER, FinancialProvider } from './providers/financial.provider';
 import { FmpClient } from './providers/fmp/fmp.client';
-import { FmpStockProvider } from './providers/fmp/fmp.stock.provider';
 import { UpbitCryptoProvider } from './providers/upbit/upbit.crypto.provider';
-import { YahooStockProvider } from './providers/yahoo/yahoo.stock.provider';
+import { AssetServiceConfig } from './types';
+import { CRYPTO_ASSET_CONFIG, STOCK_ASSET_CONFIG } from './types/common.types';
 
 @Module({
   imports: [CustomHttpModule, ConfigModule],
@@ -26,23 +28,40 @@ import { YahooStockProvider } from './providers/yahoo/yahoo.stock.provider';
     AlpacaClient, // [수정] 의존성 주입을 위해 Client들을 등록해야 합니다.
 
     // 2. FinancialProvider 인터페이스를 구현하는 모든 Provider들을 등록합니다.
-    FmpStockProvider,
-    YahooStockProvider,
     AlpacaStockProvider,
     UpbitCryptoProvider,
-
-    // 3. (핵심) GatewayModule과 동일한 동적 팩토리 패턴을 적용합니다.
+    // Map<AssetType, FinancialProvider> ← 인스턴스로 생성
     {
       provide: FINANCIAL_PROVIDER,
-      // 4. useFactory는 inject에 명시된 Provider들의 '인스턴스'를 배열로 주입받습니다.
-      useFactory: (...providers: FinancialProvider[]) => {
-        // 참고: 현재 모든 Provider의 assetType이 'STOCK'으로 동일하므로,
-        // Map을 사용하면 마지막 Provider(AlpacaStockProvider)만 남게 됩니다.
-        // 향후 crypto 등이 추가될 때를 대비한 구조입니다.
-        return new Map<AssetType, FinancialProvider>(providers.map(provider => [provider.assetType, provider]));
+      useFactory: (alpaca: AlpacaStockProvider, upbit: UpbitCryptoProvider): Map<AssetType, FinancialProvider> => {
+        return new Map<AssetType, FinancialProvider>([
+          [alpaca.assetType, alpaca],
+          [upbit.assetType, upbit],
+        ]);
       },
-      // 5. 이 팩토리에 주입할 Provider 클래스들만 명시합니다.
-      inject: [FmpStockProvider, YahooStockProvider, AlpacaStockProvider, UpbitCryptoProvider],
+      inject: [AlpacaStockProvider, UpbitCryptoProvider],
+    },
+    {
+      provide: STOCK_ASSET_CONFIG.name,
+      useFactory: (): AssetServiceConfig => STOCK_ASSET_CONFIG,
+    },
+    {
+      provide: CRYPTO_ASSET_CONFIG.name,
+      useFactory: (): AssetServiceConfig => CRYPTO_ASSET_CONFIG,
+    },
+
+    // 서비스 바인딩: 각 서비스에 자신 전용 설정을 주입
+    {
+      provide: StockService,
+      useFactory: (providerMap: Map<AssetType, FinancialProvider>, cache: Cache, cfg: AssetServiceConfig) =>
+        new StockService(providerMap, cache, cfg),
+      inject: [FINANCIAL_PROVIDER, CACHE_MANAGER, STOCK_ASSET_CONFIG.name],
+    },
+    {
+      provide: CryptoService,
+      useFactory: (providerMap: Map<AssetType, FinancialProvider>, cache: Cache, cfg: AssetServiceConfig) =>
+        new CryptoService(providerMap, cache, cfg),
+      inject: [FINANCIAL_PROVIDER, CACHE_MANAGER, CRYPTO_ASSET_CONFIG.name],
     },
   ],
   exports: [FinancialService],

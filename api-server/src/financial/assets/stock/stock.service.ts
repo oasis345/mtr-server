@@ -1,57 +1,15 @@
-import { CacheTTL } from '@/common/constants/cache.constants';
 import { AssetType } from '@/common/types/asset.types';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { FINANCIAL_PROVIDER, FinancialProvider } from '../../providers/financial.provider';
-import { AssetQueryParams, CacheConfig, DataTypeMethodMap, MarketDataType } from '../../types';
+import { AssetQueryParams, AssetServiceConfig } from '../../types';
 import { AssetService } from '../asset.service';
 
 @Injectable()
 export class StockService extends AssetService {
   protected readonly assetType = AssetType.STOCK;
-  protected readonly dataTypeMethodMap: DataTypeMethodMap = new Map([
-    [MarketDataType.ASSETS, 'getAssets'],
-    [MarketDataType.MOST_ACTIVE, 'getMostActive'],
-    [MarketDataType.GAINERS, 'getTopGainers'],
-    [MarketDataType.LOSERS, 'getTopLosers'],
-    [MarketDataType.SYMBOL, 'getSnapshots'],
-  ]);
 
-  protected readonly cacheableDataTypeMap: Map<MarketDataType, CacheConfig> = new Map([
-    [
-      MarketDataType.ASSETS,
-      {
-        ttl: CacheTTL.EVERY_12_HOURS,
-        refreshInterval: 'EVERY_12_HOURS',
-        reason: '주식 목록은 거의 변하지 않음',
-      },
-    ],
-    [
-      MarketDataType.MOST_ACTIVE,
-      {
-        ttl: CacheTTL.ONE_MINUTE,
-        refreshInterval: 'EVERY_1_MINUTES',
-        reason: '인기주식 순위, 1분 캐시로 충분',
-      },
-    ],
-    [
-      MarketDataType.GAINERS,
-      {
-        ttl: CacheTTL.ONE_MINUTE,
-        refreshInterval: 'EVERY_1_MINUTES',
-        reason: '상승주식 순위, 1분 캐시로 충분',
-      },
-    ],
-    [
-      MarketDataType.LOSERS,
-      {
-        ttl: CacheTTL.ONE_MINUTE,
-        refreshInterval: 'EVERY_1_MINUTES',
-        reason: '하락주식 순위, 1분 캐시로 충분',
-      },
-    ],
-  ]);
   protected getCacheKey(params: AssetQueryParams): string {
     return `stocks:${params.dataType}`;
   }
@@ -59,7 +17,8 @@ export class StockService extends AssetService {
   constructor(
     @Inject(FINANCIAL_PROVIDER) protected readonly providerMap: Map<AssetType, FinancialProvider>,
     @Inject(CACHE_MANAGER) cacheManager: Cache,
+    @Inject('ASSET_SERVICE_CONFIG') cfg: AssetServiceConfig, // 주입된 설정 사용
   ) {
-    super(cacheManager);
+    super(cacheManager, cfg);
   }
 }

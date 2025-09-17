@@ -79,6 +79,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
           changesPercentage: parseFloat(changesPercentage.toFixed(2)),
           volume: snapshot.latestTrade?.s, // 거래량 추가
           previousClose: snapshot.prevDailyBar?.c,
+          currency: 'USD',
         };
       });
     } catch (error) {
@@ -117,6 +118,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
           changesPercentage: snapshotData?.changesPercentage || 0,
           volume: mostActiveItem.volume || snapshotData?.volume || null, // 🎯 거래량 우선 사용
           previousClose: snapshotData?.previousClose,
+          currency: 'USD',
         };
         return data;
       });
@@ -164,6 +166,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
       price: mover.price,
       change: mover.change,
       changesPercentage: mover.percent_change,
+      currency: 'USD',
     };
   }
 }

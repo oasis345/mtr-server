@@ -1,3 +1,4 @@
+import { CacheTTL } from '@/common/constants/cache.constants';
 import { Asset, AssetType } from '@/common/types/asset.types';
 import { normalizeSymbols } from '@/common/utils/normalize';
 import { Transform } from 'class-transformer';
@@ -38,6 +39,51 @@ export interface CacheConfig {
   refreshInterval?: string;
   reason?: string;
 }
+
+export interface AssetServiceConfig {
+  name: string;
+  assetType: AssetType;
+  dataTypeMethodMap: DataTypeMethodMap;
+  cacheableDataTypeMap: Map<MarketDataType, CacheConfig>;
+  defaultLimits: Map<MarketDataType, number>;
+}
+
+export const CRYPTO_ASSET_CONFIG: AssetServiceConfig = {
+  name: 'CRYPTO_ASSET_CONFIG',
+  assetType: AssetType.CRYPTO,
+  dataTypeMethodMap: new Map([
+    [MarketDataType.ASSETS, 'getAssets'],
+    [MarketDataType.TOP_TRADED, 'getTopTraded'],
+  ]),
+  cacheableDataTypeMap: new Map<MarketDataType, CacheConfig>([
+    [MarketDataType.ASSETS, { ttl: CacheTTL.EVERY_12_HOURS, refreshInterval: 'EVERY_12_HOURS' }],
+    [MarketDataType.TOP_TRADED, { ttl: CacheTTL.ONE_MINUTE, refreshInterval: 'EVERY_MINUTE' }],
+  ]),
+  defaultLimits: new Map<MarketDataType, number>([[MarketDataType.TOP_TRADED, 200]]),
+};
+
+export const STOCK_ASSET_CONFIG: AssetServiceConfig = {
+  name: 'STOCK_ASSET_CONFIG',
+  assetType: AssetType.STOCK,
+  dataTypeMethodMap: new Map([
+    [MarketDataType.ASSETS, 'getAssets'],
+    [MarketDataType.MOST_ACTIVE, 'getMostActive'],
+    [MarketDataType.GAINERS, 'getTopGainers'],
+    [MarketDataType.LOSERS, 'getTopLosers'],
+    [MarketDataType.SYMBOL, 'getSnapshots'],
+  ]),
+  cacheableDataTypeMap: new Map<MarketDataType, CacheConfig>([
+    [MarketDataType.ASSETS, { ttl: CacheTTL.EVERY_12_HOURS, refreshInterval: 'EVERY_12_HOURS' }],
+    [MarketDataType.MOST_ACTIVE, { ttl: CacheTTL.ONE_MINUTE, refreshInterval: 'EVERY_MINUTE' }],
+    [MarketDataType.GAINERS, { ttl: CacheTTL.ONE_MINUTE, refreshInterval: 'EVERY_MINUTE' }],
+    [MarketDataType.LOSERS, { ttl: CacheTTL.ONE_MINUTE, refreshInterval: 'EVERY_MINUTE' }],
+  ]),
+  defaultLimits: new Map<MarketDataType, number>([
+    [MarketDataType.MOST_ACTIVE, 50],
+    [MarketDataType.GAINERS, 50],
+    [MarketDataType.LOSERS, 50],
+  ]),
+};
 
 // export type TossCandleData = {
 //   dt: string;

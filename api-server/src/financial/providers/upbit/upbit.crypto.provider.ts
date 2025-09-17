@@ -1,33 +1,23 @@
 import { CustomHttpService } from '@/common/http/http.service';
 import { Asset, AssetType } from '@/common/types';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AssetQueryParams } from '../../types';
 import { UpbitMarket, UpbitTicker } from '../../types/upbit.type';
 import { FinancialProvider } from '../financial.provider';
 
 @Injectable()
-export class UpbitCryptoProvider implements FinancialProvider, OnModuleInit {
+export class UpbitCryptoProvider implements FinancialProvider {
   assetType = AssetType.CRYPTO;
   private readonly baseUrl = 'https://api.upbit.com/v1';
   private readonly logger = new Logger(UpbitCryptoProvider.name);
 
-  // ✅ 동적으로 가져온 마켓 목록
-  private krwMarkets: string[] = [];
-
   constructor(private readonly httpService: CustomHttpService) {}
 
-  async onModuleInit() {
-    await this.loadKrwMarkets();
-  }
-
-  private async loadKrwMarkets(): Promise<void> {
-    try {
-      const markets: UpbitMarket[] = await this.httpService.get<UpbitMarket[]>(`${this.baseUrl}/market/all`);
-      this.krwMarkets = markets.filter(market => market.market.startsWith('KRW-')).map(market => market.market);
-      this.logger.log(`Loaded ${this.krwMarkets.length} KRW markets`);
-    } catch (error) {
-      this.krwMarkets = ['KRW-BTC', 'KRW-ETH', 'KRW-XRP', 'KRW-ADA', 'KRW-DOT'];
-    }
+  private async loadKrwMarkets(): Promise<string[]> {
+    const markets: UpbitMarket[] = await this.httpService.get<UpbitMarket[]>(`${this.baseUrl}/market/all`);
+    const krwMarkets = markets.filter(market => market.market.startsWith('KRW-')).map(market => market.market);
+    this.logger.log(`Loaded ${krwMarkets.length} KRW markets`);
+    return krwMarkets;
   }
 
   async getAssets(params: AssetQueryParams): Promise<Asset[]> {
@@ -37,7 +27,8 @@ export class UpbitCryptoProvider implements FinancialProvider, OnModuleInit {
 
   // ✅ 공통 티커 데이터 조회 메서드
   private async getTickersData(): Promise<UpbitTicker[]> {
-    const markets = this.krwMarkets.join(',');
+    const data = await this.loadKrwMarkets();
+    const markets = data.join(',');
     return await this.httpService.get<UpbitTicker[]>(`${this.baseUrl}/ticker?markets=${markets}`);
   }
 
@@ -92,11 +83,8 @@ export class UpbitCryptoProvider implements FinancialProvider, OnModuleInit {
       return {
         symbol: data.market.replace('KRW-', ''),
         name: data.korean_name,
-        price: 0,
-        change: 0,
-        changesPercentage: 0,
-        volume: 0,
         assetType: AssetType.CRYPTO,
+        currency: 'KRW',
       };
     } else {
       return {
@@ -104,8 +92,9 @@ export class UpbitCryptoProvider implements FinancialProvider, OnModuleInit {
         name: data.market.replace('KRW-', ''),
         price: data.trade_price,
         change: data.signed_change_price,
-        changesPercentage: data.signed_change_rate * 100,
+        changesPercentage: data.signed_change_rate,
         volume: data.acc_trade_volume_24h,
+        currency: 'KRW',
         assetType: AssetType.CRYPTO,
       };
     }

@@ -30,13 +30,18 @@ export class AlpacaStreamClient {
     this.socket.on('message', (data: WebSocket.Data) => {
       try {
         const messages = JSON.parse(data.toString());
+        console.log(messages);
         if (Array.isArray(messages)) {
           messages.forEach(message => this.messageStream.next(message));
         } else {
           this.messageStream.next(messages);
         }
+
+        if (messages.T === 'error') {
+          this.logger.error('Alpaca Stream Client WebSocket error:', messages);
+        }
       } catch (error) {
-        this.logger.error('Failed to parse WebSocket message:', data.toString());
+        this.logger.error('Alpaca Stream Client Failed to parse WebSocket message:', data.toString());
       }
     });
 

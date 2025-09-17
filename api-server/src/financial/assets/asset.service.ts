@@ -4,128 +4,156 @@ import { BadRequestException, Inject, Logger, OnModuleInit } from '@nestjs/commo
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Cache } from 'cache-manager';
 import { FinancialProvider } from '../providers/financial.provider';
-import { AssetMethod, AssetQueryParams, CacheConfig, DataTypeMethodMap, MarketDataType } from '../types';
+import { AssetMethod, AssetQueryParams, AssetServiceConfig, MarketDataType } from '../types';
 
 export abstract class AssetService implements OnModuleInit {
   protected readonly logger = new Logger(this.constructor.name);
 
   protected abstract readonly assetType: AssetType;
   protected abstract readonly providerMap: Map<AssetType, FinancialProvider>;
-  protected abstract readonly dataTypeMethodMap: DataTypeMethodMap;
-  protected abstract readonly cacheableDataTypeMap: Map<MarketDataType, CacheConfig>;
   protected abstract getCacheKey(params: AssetQueryParams): string;
 
-  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject('ASSET_SERVICE_CONFIG') private readonly config: AssetServiceConfig,
+  ) {}
 
   async onModuleInit() {
     this.logger.log(`Initializing ${this.assetType} caches...`);
-    await this.refreshAssetsCache();
-    await this.refreshAllCaches();
+    await this.refreshAllCachesNow();
   }
 
+  // 설정 기반: 12시간 주기
   @Cron(CronExpression.EVERY_12_HOURS)
-  async refreshAssetsCache() {
-    this.logger.log(`Scheduled refresh for ${this.assetType} assets...`);
-    await this.refreshCache(MarketDataType.ASSETS);
+  async refreshEvery12Hours() {
+    await this.refreshCachesByInterval('EVERY_12_HOURS');
   }
 
+  // 설정 기반: 1분 주기
   @Cron(CronExpression.EVERY_MINUTE)
-  async refreshAllCaches() {
-    await Promise.allSettled([
-      this.refreshCache(MarketDataType.MOST_ACTIVE),
-      this.refreshCache(MarketDataType.GAINERS),
-      this.refreshCache(MarketDataType.LOSERS),
-    ]);
+  async refreshEveryMinute() {
+    await this.refreshCachesByInterval('EVERY_MINUTE');
   }
 
-  async refreshCache(dataType: MarketDataType, limit: number = 50): Promise<void> {
+  // interval로 매핑된 데이터타입만 동적 리프레시
+  private async refreshCachesByInterval(interval: string) {
+    const targets = Array.from(this.config.cacheableDataTypeMap.entries())
+      .filter(([_, cfg]) => cfg.refreshInterval === interval)
+      .map(([dataType]) => dataType);
+
+    if (targets.length === 0) return;
+
+    this.logger.debug(`[${this.assetType}] refresh interval=${interval}, types=[${targets.join(', ')}]`);
+    await Promise.allSettled(targets.map(dt => this.refreshCache(dt)));
+  }
+
+  // 수동 전체 리프레시(부트스트랩 시 1회)
+  private async refreshAllCachesNow() {
+    const targets = Array.from(this.config.cacheableDataTypeMap.keys());
+    if (targets.length === 0) return;
+
+    this.logger.debug(`[${this.assetType}] initial refresh for types=[${targets.join(', ')}]`);
+    await Promise.allSettled(targets.map(dt => this.refreshCache(dt)));
+  }
+
+  async refreshCache(dataType: MarketDataType, limit?: number): Promise<void> {
     try {
       if (!this.isValidDataType(dataType) || !this.isValidProvider(this.assetType)) {
-        this.logger.warn(`No method mapped for data type: ${dataType} or provider: ${this.assetType}`);
+        this.logger.warn(`Skip refresh. Invalid dataType or provider. type=${dataType}, asset=${this.assetType}`);
         return;
       }
 
-      const params: AssetQueryParams = { assetType: this.assetType, dataType, limit };
-      const methodName = this.dataTypeMethodMap.get(dataType);
+      const actualLimit = limit ?? this.getDefaultLimit(dataType);
+      const params: AssetQueryParams = { assetType: this.assetType, dataType, limit: actualLimit };
+
+      const methodName = this.config.dataTypeMethodMap.get(dataType);
+      if (!methodName) {
+        this.logger.warn(`No method mapped for data type: ${dataType}`);
+        return;
+      }
+
       const provider = this.providerMap.get(this.assetType);
       const method = provider[methodName] as AssetMethod;
+
       const freshData = await method.call(provider, params);
-
-      // 🎯 캐시 저장 전에 name 보강
       const enrichedData = await this.enrichWithNames(freshData);
-      const cacheKey = this.getCacheKey(params);
-      const ttl = this.cacheableDataTypeMap.get(dataType).ttl;
 
-      await this.cacheManager.set(cacheKey, enrichedData, ttl);
-      this.logger.log(`✅ Cache saved with names: ${cacheKey} (${enrichedData.length} items)`);
+      const cacheKey = this.getCacheKey(params);
+      const ttl = this.getTTL(dataType);
+      if (ttl > 0) {
+        await this.cacheManager.set(cacheKey, enrichedData, ttl);
+      }
+
+      this.logger.log(`✅ Cache saved: ${cacheKey} items=${enrichedData.length} ttl=${ttl}s`);
     } catch (error) {
       this.logger.error(`Failed to refresh cache for ${this.assetType}:${dataType}`, error);
     }
   }
 
   async getMarketData(params: AssetQueryParams): Promise<Asset[]> {
-    if (!this.isValidDataType(params.dataType) || !this.isValidProvider(this.assetType))
+    if (!this.isValidDataType(params.dataType) || !this.isValidProvider(this.assetType)) {
       throw new BadRequestException(`Unsupported data type: "${params.dataType}" or provider: "${this.assetType}"`);
+    }
 
-    const isCacheable = this.cacheableDataTypeMap.has(params.dataType);
-
-    if (isCacheable) {
+    const cacheable = this.isCacheable(params.dataType);
+    if (cacheable) {
       const cacheKey = this.getCacheKey(params);
-      const cachedData = await this.cacheManager.get<Asset[]>(cacheKey);
-      if (cachedData) {
+      const cached = await this.cacheManager.get<Asset[]>(cacheKey);
+      if (cached) {
         this.logger.debug(`✅ Cache hit: ${cacheKey}`);
-        return cachedData;
+        return cached;
       }
     }
 
-    const methodName = this.dataTypeMethodMap.get(params.dataType);
+    const methodName = this.config.dataTypeMethodMap.get(params.dataType);
     const provider = this.providerMap.get(this.assetType);
     const method = provider[methodName] as AssetMethod;
-    const freshData = await method.call(provider, params);
-    const enrichedData = await this.enrichWithNames(freshData);
+    const fresh = await method.call(provider, params);
+    const enriched = await this.enrichWithNames(fresh);
 
-    if (isCacheable) {
+    if (cacheable) {
       const cacheKey = this.getCacheKey(params);
-      const ttl = this.cacheableDataTypeMap.get(params.dataType).ttl;
-      await this.cacheManager.set(cacheKey, enrichedData, ttl);
+      const ttl = this.getTTL(params.dataType);
+      if (ttl > 0) {
+        await this.cacheManager.set(cacheKey, enriched, ttl);
+      }
     }
 
-    return enrichedData;
+    return enriched;
   }
 
+  // names 보강 (ASSETS 캐시 기반)
   private async enrichWithNames(assets: Asset[]): Promise<Asset[]> {
-    const cacheKey = this.getCacheKey({
-      assetType: this.assetType,
-      dataType: MarketDataType.ASSETS,
+    const assetsKey = this.getCacheKey({ assetType: this.assetType, dataType: MarketDataType.ASSETS });
+    const baseAssets = await this.cacheManager.get<Asset[]>(assetsKey);
+    const map = new Map<string, string>();
+
+    baseAssets?.forEach(a => {
+      if (a.name && a.name !== a.symbol) map.set(a.symbol, a.name);
     });
 
-    const cachedAssets = await this.cacheManager.get<Asset[]>(cacheKey);
-    const symbolNameMap = new Map<string, string>();
-
-    if (cachedAssets) {
-      cachedAssets.forEach(asset => {
-        if (asset.name && asset.name !== asset.symbol) {
-          symbolNameMap.set(asset.symbol, asset.name);
-        }
-      });
-    }
-
-    return assets.map(asset => {
-      const enrichedName = symbolNameMap.get(asset.symbol);
-      const finalName = enrichedName || asset.name || asset.symbol;
-
-      return {
-        ...asset,
-        name: finalName,
-      };
-    });
+    return assets.map(a => ({ ...a, name: map.get(a.symbol) || a.name || a.symbol }));
   }
 
   private isValidDataType(dataType: MarketDataType): boolean {
-    return this.dataTypeMethodMap.has(dataType);
+    return this.config.dataTypeMethodMap.has(dataType);
   }
 
   private isValidProvider(assetType: AssetType): boolean {
     return this.providerMap.has(assetType);
+  }
+
+  private isCacheable(dataType: MarketDataType): boolean {
+    return this.config.cacheableDataTypeMap.has(dataType);
+  }
+
+  private getTTL(dataType: MarketDataType): number {
+    const ttl = this.config.cacheableDataTypeMap.get(dataType)?.ttl ?? 0;
+    return Math.max(0, ttl);
+  }
+
+  protected getDefaultLimit(dataType: MarketDataType): number {
+    const dl = this.config.defaultLimits;
+    return dl.get(dataType);
   }
 }
