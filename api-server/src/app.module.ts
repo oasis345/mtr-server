@@ -5,11 +5,12 @@ import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { UserModule } from '@/user/user.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from 'database/prisma.module';
 import AppCacheModule from './cache/cache.module';
+import { ApiTransformInterceptor } from './common/interceptors/api.transform.interceptor';
 import { FinancialModule } from './financial/financial.module';
 import { MarketModule } from './gateway/market/market.module';
 
@@ -33,6 +34,10 @@ import { MarketModule } from './gateway/market/market.module';
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ApiTransformInterceptor,
     },
     AppService,
   ],

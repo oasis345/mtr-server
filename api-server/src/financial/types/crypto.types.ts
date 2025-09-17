@@ -1,4 +1,5 @@
-import { Asset, AssetQueryParams, AssetType, MarketDataType } from './common.types';
+import { Asset, AssetType } from '@/common/types/asset.types';
+import { AssetQueryParams, MarketDataType } from './common.types';
 
 export type CryptoExchange = 'BINANCE' | 'COINBASE' | 'UPBIT' | 'BITHUMB';
 

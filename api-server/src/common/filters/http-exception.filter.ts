@@ -1,11 +1,5 @@
-import {
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  ArgumentsHost,
-} from '@nestjs/common';
-import { Response } from 'express';
-import { Logger } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from '@nestjs/common';
+import { Request, Response } from 'express';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -13,16 +7,26 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
+    const req = ctx.getRequest<Request>();
+    const res = ctx.getResponse<Response>();
     const status = exception.getStatus();
-    const message = exception.getResponse();
+    const detail = exception.getResponse();
 
-    // 예외 메시지를 로그로 기록
-    this.logger.error(`HTTP Exception: ${JSON.stringify(message)}`);
+    this.logger.error(`HTTP Exception: ${JSON.stringify(detail)}`);
 
-    response.status(status).json({
-      statusCode: status,
-      message: typeof message === 'string' ? message : message['message'],
-    });
+    // Nest 기본 페이로드를 최대한 보존 + 공통 필드 추가
+    const payload =
+      typeof detail === 'string' ? { statusCode: status, message: detail, error: 'Bad Request' } : { ...detail };
+
+    res
+      .status(status)
+      .type('application/json')
+      .json({
+        statusCode: payload['statusCode'] ?? status,
+        message: payload['message'],
+        error: payload['error'],
+        path: req.url,
+        timestamp: new Date().toISOString(),
+      });
   }
 }

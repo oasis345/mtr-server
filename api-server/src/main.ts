@@ -1,12 +1,10 @@
-import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { PrismaService } from '@/database/prisma.service';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { ApiTransformInterceptor } from './common/interceptors/api.transform.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,8 +21,6 @@ async function bootstrap() {
   app.use(cookieParser());
   const prismaService = app.get(PrismaService);
   await prismaService.enableShutdownHooks();
-  app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new ApiTransformInterceptor(new Reflector()));
   const configService = app.get(ConfigService);
   const corsOrigin = configService.get<string>('CORS_ORIGIN');
 

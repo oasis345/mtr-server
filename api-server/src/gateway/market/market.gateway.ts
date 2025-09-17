@@ -1,4 +1,3 @@
-import { OnEvent } from '@nestjs/event-emitter';
 import {
   ConnectedSocket,
   MessageBody,
@@ -21,7 +20,12 @@ export class MarketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly subscriptionService: MarketSubscriptionService) {}
+  constructor(private readonly subscriptionService: MarketSubscriptionService) {
+    // 채널 브로드캐스트 데이터 전송
+    this.subscriptionService.getChannelBroadcasts().subscribe(({ channel, data }) => {
+      this.server.to(channel).emit('market-data', data);
+    });
+  }
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -44,16 +48,10 @@ export class MarketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('unsubscribe-market')
   async handleUnsubscription(@ConnectedSocket() client: Socket, @MessageBody() body: MarketSubscription): Promise<any> {
     const { payload } = body;
-    const channel = await this.subscriptionService.subscribe(client.id, payload);
+    const channel = this.subscriptionService.unsubscribe(client.id, payload);
 
     await client.leave(channel);
     console.log(`Client ${client.id} left channel: ${channel}`);
     return { event: 'unsubscribed', channel };
-  }
-
-  @OnEvent('marketData.update')
-  publishChannel(params: { channel: string; data: any }) {
-    console.log(`Publishing to channel ${params.channel}:`, params.data, 'items');
-    this.server.to(params.channel).emit('market-data', params.data);
   }
 }

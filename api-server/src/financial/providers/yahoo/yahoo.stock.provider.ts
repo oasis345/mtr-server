@@ -1,4 +1,5 @@
-import { Asset, AssetQueryParams, AssetType, Stock, StockQueryParams } from '@/financial/types';
+import { Asset, AssetType } from '@/common/types/asset.types';
+import { AssetQueryParams, Stock, StockQueryParams } from '@/financial/types';
 import { Injectable, Logger } from '@nestjs/common';
 import yahooFinance from 'yahoo-finance2';
 import { BaseFinancialProvider } from '../financial.provider';
@@ -20,6 +21,9 @@ interface YahooQuote {
 
 @Injectable()
 export class YahooStockProvider extends BaseFinancialProvider {
+  getTopTraded(params: AssetQueryParams): Promise<Asset[]> {
+    throw new Error('Method not implemented.');
+  }
   assetType = AssetType.STOCK;
   getSnapshots(params: AssetQueryParams): Promise<Asset[]> {
     throw new Error('Method not implemented.');

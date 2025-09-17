@@ -1,16 +1,15 @@
-import { Asset, AssetType } from '@/financial/types';
+import { Asset, AssetType } from '@/common/types/asset.types';
+import { Observable } from 'rxjs';
 
 export enum MarketStreamProviders {
   ALPACA = 'ALPACA',
   UPBIT = 'UPBIT',
 }
 
-export interface StreamProvider {
+export interface MarketStreamProvider {
   assetType: AssetType;
   subscribe(symbols: string[]): void;
   unsubscribe(symbols: string[]): void;
   normalizeToAsset(data: any): Asset;
-
-  onData(handler: (asset: Asset) => void): void;
-  offData(handler: (asset: Asset) => void): void;
+  getDataStream(): Observable<Asset>;
 }

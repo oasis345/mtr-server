@@ -7,4 +7,10 @@ export enum CacheTTL {
   SIX_HOURS = 6 * 60 * 60,
   TWELVE_HOURS = 12 * 60 * 60,
   ONE_DAY = 24 * 60 * 60,
+  ONE_WEEK = 7 * 24 * 60 * 60,
+  ONE_MONTH = 30 * 24 * 60 * 60,
+  EVERY_12_HOURS = 12 * 60 * 60,
+  EVERY_DAY = 24 * 60 * 60,
+  EVERY_WEEK = 7 * 24 * 60 * 60,
+  EVERY_MONTH = 30 * 24 * 60 * 60,
 }

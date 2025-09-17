@@ -1,4 +1,5 @@
-import { Asset, AssetQueryParams, AssetType, MarketDataType } from './common.types';
+import { Asset, AssetType } from '@/common/types/asset.types';
+import { AssetQueryParams, MarketDataType } from './common.types';
 
 export type Country = 'KR' | 'US';
 export type KoreanExchange = 'KOSPI' | 'KOSDAQ';

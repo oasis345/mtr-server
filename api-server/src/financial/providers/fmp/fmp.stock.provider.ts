@@ -1,4 +1,5 @@
-import { Asset, AssetQueryParams, AssetType, type Stock, type StockQueryParams } from '@/financial/types';
+import { Asset, AssetType } from '@/common/types/asset.types';
+import { AssetQueryParams, type Stock, type StockQueryParams } from '@/financial/types';
 import { FMP_FREE_TIER_SYMBOLS } from '@/financial/types/fmp.types';
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseFinancialProvider } from '../financial.provider';
@@ -46,6 +47,11 @@ export class FmpStockProvider extends BaseFinancialProvider {
 
   getAssets(params: StockQueryParams): Promise<Stock[]> {
     throw new Error('Method not implemented.');
+  }
+
+  async getTopTraded(params: StockQueryParams): Promise<Stock[]> {
+    const rawData = await this.fmpClient.get<FmpRawStockData[]>('stock_market/actives');
+    return rawData.slice(0, params.limit).map(stock => this.normalizeToAsset(stock));
   }
 
   async getMostActive(params: StockQueryParams): Promise<Stock[]> {

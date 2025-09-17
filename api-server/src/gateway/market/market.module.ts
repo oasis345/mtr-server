@@ -1,9 +1,10 @@
-import { AssetType } from '@/financial/types';
+import { STREAM_PROVIDER_MAP } from '@/common/types';
+import { AssetType } from '@/common/types/asset.types';
 import { Module } from '@nestjs/common';
 import { MarketGateway } from './market.gateway';
 import { MarketSubscriptionService } from './market.subsciption.service';
 import { AlpacaStockStreamProvider } from './providers/alpaca/alpaca.stock.provider';
-import { StreamProvider } from './types/provider.interface';
+import { MarketStreamProvider } from './types/provider.interface';
 
 @Module({
   providers: [
@@ -13,9 +14,9 @@ import { StreamProvider } from './types/provider.interface';
     // TODO: UpbitCryptoStreamProvider가 생기면 여기에 추가
 
     {
-      provide: 'STREAM_PROVIDER_MAP',
-      useFactory: (...providers: StreamProvider[]) => {
-        const map = new Map<AssetType, StreamProvider>();
+      provide: STREAM_PROVIDER_MAP,
+      useFactory: (...providers: MarketStreamProvider[]) => {
+        const map = new Map<AssetType, MarketStreamProvider>();
         providers.forEach(provider => {
           map.set(provider.assetType, provider);
         });

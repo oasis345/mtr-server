@@ -1,7 +1,8 @@
+import { AssetType } from '@/common/types/asset.types';
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { FinancialService } from './financial.service';
-import { AssetQueryParams, AssetType, MarketDataType } from './types';
+import { AssetQueryParams, MarketDataType } from './types';
 
 @ApiTags('Financial')
 @Controller('financial')

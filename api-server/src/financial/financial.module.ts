@@ -1,6 +1,8 @@
 import { CustomHttpModule } from '@/common/http/http.module';
+import { AssetType } from '@/common/types/asset.types';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { CryptoService } from './assets/crypto/crypto.service';
 import { StockService } from './assets/stock/stock.service';
 import { FinancialController } from './financial.controller';
 import { FinancialService } from './financial.service';
@@ -9,8 +11,8 @@ import { AlpacaStockProvider } from './providers/alpaca/alpaca.stock.provider';
 import { FINANCIAL_PROVIDER, FinancialProvider } from './providers/financial.provider';
 import { FmpClient } from './providers/fmp/fmp.client';
 import { FmpStockProvider } from './providers/fmp/fmp.stock.provider';
+import { UpbitCryptoProvider } from './providers/upbit/upbit.crypto.provider';
 import { YahooStockProvider } from './providers/yahoo/yahoo.stock.provider';
-import { AssetType } from './types';
 
 @Module({
   imports: [CustomHttpModule, ConfigModule],
@@ -19,6 +21,7 @@ import { AssetType } from './types';
     // 1. 핵심 서비스 및 클라이언트들을 먼저 등록합니다.
     FinancialService,
     StockService,
+    CryptoService,
     FmpClient,
     AlpacaClient, // [수정] 의존성 주입을 위해 Client들을 등록해야 합니다.
 
@@ -26,6 +29,7 @@ import { AssetType } from './types';
     FmpStockProvider,
     YahooStockProvider,
     AlpacaStockProvider,
+    UpbitCryptoProvider,
 
     // 3. (핵심) GatewayModule과 동일한 동적 팩토리 패턴을 적용합니다.
     {
@@ -38,7 +42,7 @@ import { AssetType } from './types';
         return new Map<AssetType, FinancialProvider>(providers.map(provider => [provider.assetType, provider]));
       },
       // 5. 이 팩토리에 주입할 Provider 클래스들만 명시합니다.
-      inject: [FmpStockProvider, YahooStockProvider, AlpacaStockProvider],
+      inject: [FmpStockProvider, YahooStockProvider, AlpacaStockProvider, UpbitCryptoProvider],
     },
   ],
   exports: [FinancialService],

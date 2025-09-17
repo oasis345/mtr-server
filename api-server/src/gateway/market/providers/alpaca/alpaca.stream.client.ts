@@ -1,22 +1,22 @@
+import { AlpacaWebSocketStockTradeMessage } from '@/common/types';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EventEmitter } from 'events';
+import { Observable, Subject } from 'rxjs';
 import WebSocket from 'ws';
 
 @Injectable()
-export class AlpacaStreamClient extends EventEmitter {
+export class AlpacaStreamClient {
   private readonly logger = new Logger(AlpacaStreamClient.name);
   private socket: WebSocket | null = null;
   private readonly apiKey: string;
   private readonly secretKey: string;
   private readonly url: string;
+  private readonly messageStream = new Subject<AlpacaWebSocketStockTradeMessage>();
 
   constructor(
     private readonly configService: ConfigService,
-    // 🎯 URL을 외부에서 주입받도록 변경
     streamUrl: string,
   ) {
-    super();
     this.apiKey = this.configService.get<string>('ALPACA_API_KEY');
     this.secretKey = this.configService.get<string>('ALPACA_SECRET_KEY');
     this.url = streamUrl;
@@ -27,17 +27,13 @@ export class AlpacaStreamClient extends EventEmitter {
     this.socket = new WebSocket(this.url);
 
     this.socket.on('open', () => this.authenticate());
-
-    // 🎯 메시지 처리 로직 수정
     this.socket.on('message', (data: WebSocket.Data) => {
       try {
         const messages = JSON.parse(data.toString());
-
-        // 🎯 배열의 각 메시지를 개별적으로 처리
         if (Array.isArray(messages)) {
-          messages.forEach(message => this.emit('message', message));
+          messages.forEach(message => this.messageStream.next(message));
         } else {
-          this.emit('message', messages); // 비배열 형식도 대비
+          this.messageStream.next(messages);
         }
       } catch (error) {
         this.logger.error('Failed to parse WebSocket message:', data.toString());
@@ -45,11 +41,17 @@ export class AlpacaStreamClient extends EventEmitter {
     });
 
     this.socket.on('close', () => {
-      this.emit('close');
       this.logger.warn('WebSocket connection closed. Reconnecting in 5 seconds...');
-      setTimeout(() => this.connect(), 5000); // 🎯 5초 후 재연결
+      setTimeout(() => this.connect(), 5000);
     });
-    this.socket.on('error', error => this.emit('error', error));
+
+    this.socket.on('error', error => {
+      this.logger.error('WebSocket error:', error);
+    });
+  }
+
+  getMessageStream(): Observable<AlpacaWebSocketStockTradeMessage> {
+    return this.messageStream.asObservable();
   }
 
   disconnect(): void {

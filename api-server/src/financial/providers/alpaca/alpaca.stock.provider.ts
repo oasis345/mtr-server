@@ -4,8 +4,9 @@ import type {
   AlpacaMover,
   AlpacaMoversResponse,
   AlpacaSnapshotsResponse,
-} from '@/financial/types/alpaca.types';
-import { AssetQueryParams, AssetType } from '@/financial/types/common.types';
+} from '@/common/types/alpaca.types';
+import { Asset, AssetType } from '@/common/types/asset.types';
+import { AssetQueryParams } from '@/financial/types/common.types';
 import type { Stock } from '@/financial/types/stock.types';
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseFinancialProvider } from '../financial.provider';
@@ -13,6 +14,9 @@ import { AlpacaClient } from './alpaca.client';
 
 @Injectable()
 export class AlpacaStockProvider extends BaseFinancialProvider {
+  getTopTraded(params: AssetQueryParams): Promise<Asset[]> {
+    throw new Error('Method not implemented.');
+  }
   assetType = AssetType.STOCK;
   private readonly logger = new Logger(AlpacaStockProvider.name);
 
@@ -26,10 +30,6 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
       status: 'active',
       asset_class: 'us_equity',
     });
-
-    if (params.limit) {
-      searchParams.set('limit', String(params.limit));
-    }
 
     try {
       // Assets API는 ASSET Base URL을 사용해야 합니다.
@@ -89,7 +89,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
 
   // 🎯 가장 활발한 종목 + 상세 정보 조합
   async getMostActive(params: AssetQueryParams): Promise<Stock[]> {
-    const searchParams = new URLSearchParams({ top: String(params.limit ?? 30) });
+    const searchParams = new URLSearchParams({ top: String(params.limit ?? 10) });
     try {
       // 1단계: Most Active 목록 조회 (거래량 정보)
       const mostActiveResponse = await this.alpacaClient.getMarketData<AlpacaMostActiveResponse>(
