@@ -1,6 +1,7 @@
 import { CacheTTL } from '@/common/constants/cache.constants';
 import { AssetType } from '@/common/types';
 import { CronExpression } from '@nestjs/schedule';
+import { candleTTLSeconds } from '../cache/candleTTL';
 import { CacheConfig, DataTypeMethodMap, MarketDataType } from '../types';
 
 export const ASSET_CONFIGS = 'ASSET_CONFIGS';
@@ -49,6 +50,7 @@ export const STOCK_ASSET_CONFIG: AssetServiceConfig = {
       { ttl: CacheTTL.ONE_MINUTE, refreshInterval: CronExpression.EVERY_MINUTE, withLogo: true },
     ],
     [MarketDataType.LOSERS, { ttl: CacheTTL.ONE_MINUTE, refreshInterval: CronExpression.EVERY_MINUTE, withLogo: true }],
+    [MarketDataType.CANDLES, { ttl: p => candleTTLSeconds(p.timeframe), warmup: false }],
   ]),
   defaultLimits: new Map<MarketDataType, number>([
     [MarketDataType.MOST_ACTIVE, 50],

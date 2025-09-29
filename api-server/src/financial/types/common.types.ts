@@ -38,11 +38,13 @@ export class AssetQueryParams {
 
 export type AssetMethod<T extends AssetQueryParams = AssetQueryParams> = (params: T) => Promise<Asset[]>;
 export type DataTypeMethodMap = Map<MarketDataType, keyof FinancialProvider>;
+export type CacheTTL = number | ((params: AssetQueryParams) => number);
 
 export interface CacheConfig {
-  ttl: number;
+  ttl: CacheTTL;
   refreshInterval?: string;
   reason?: string;
+  warmup?: boolean;
   withLogo?: boolean;
 }
 

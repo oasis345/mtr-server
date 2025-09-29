@@ -15,16 +15,18 @@ export class AssetCacheOrchestrator {
     // 2) 크론 등록
     this.registerCronJobs(service);
   }
-
   private async warmup(service: AssetService) {
-    const order = Array.from(service['config'].cacheableDataTypeMap.keys());
+    const order = Array.from(service['config'].cacheableDataTypeMap.entries())
+      .filter(([, cfg]) => cfg?.warmup !== false) // ← warmup=false 제외
+      .map(([dataType]) => dataType);
+
     if (order.length === 0) return;
     this.logger.debug(`[${service['assetType']}] warmup: [${order.join(', ')}]`);
     for (const dataType of order) {
       try {
         await service.refreshCache(dataType);
         this.logger.log(`[${service['assetType']}] warmed: ${dataType}`);
-      } catch (e) {
+      } catch {
         this.logger.error(`[${service['assetType']}] warmup failed: ${dataType}`);
       }
     }

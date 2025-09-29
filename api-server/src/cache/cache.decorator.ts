@@ -40,7 +40,7 @@ export const Cacheable =
       if (!cacheService) return Reflect.apply(originalMethod, instance, methodArguments);
 
       const cachedValue = await cacheService.get<unknown>(cacheKey);
-      if (cachedValue !== undefined) return cachedValue;
+      if (cachedValue != null) return cachedValue; // ← !== undefined → != null 로 변경
 
       const resultValue = await Reflect.apply(originalMethod, instance, methodArguments);
       if (ttlSeconds > 0) await cacheService.set(cacheKey, resultValue, ttlSeconds);

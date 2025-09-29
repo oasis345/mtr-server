@@ -1,13 +1,13 @@
 import { AppCacheService } from '@/cache/cache.service';
-import { buildMarketCacheKey } from '@/cache/cacheKeyUtils';
 import { Asset } from '@/common/types';
 import { AssetType } from '@/common/types/asset.types';
+import { AssetService } from '@/financial/assets/asset.service';
+import { buildMarketCacheKey } from '@/financial/cache/buildMarketCacheKey';
+import { AssetServiceConfig } from '@/financial/config/assetConfig';
 import { ProviderRegistry } from '@/financial/providers/provider.registry';
 import { LogoService } from '@/financial/services/logo.service';
+import { MarketDataType } from '@/financial/types';
 import { Injectable } from '@nestjs/common';
-import { AssetServiceConfig } from '../../config/assetConfig';
-import { MarketDataType } from '../../types';
-import { AssetService } from '../asset.service';
 
 @Injectable()
 export class StockService extends AssetService {

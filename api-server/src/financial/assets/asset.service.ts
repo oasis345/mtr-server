@@ -1,11 +1,11 @@
 import { Cacheable } from '@/cache/cache.decorator';
 import { AppCacheService } from '@/cache/cache.service';
-import { buildMarketCacheKey } from '@/cache/cacheKeyUtils';
 import { Asset, AssetType } from '@/common/types';
 import { Logger } from '@nestjs/common';
+import { buildMarketCacheKey } from '../cache/buildMarketCacheKey';
 import { AssetServiceConfig } from '../config/assetConfig';
 import { ProviderRegistry } from '../providers/provider.registry';
-import { AssetQueryParams, MarketDataType } from '../types';
+import { AssetQueryParams, CacheConfig, MarketDataType } from '../types';
 
 export abstract class AssetService {
   protected readonly logger = new Logger(this.constructor.name);
@@ -27,13 +27,16 @@ export abstract class AssetService {
     const fresh = await this.registry.call<Asset[]>(this.assetType, dataType, params);
     const enriched = await this.afterCallProviderMethod(fresh, dataType);
     const key = buildMarketCacheKey(params);
-    const ttl = this.config.cacheableDataTypeMap.get(dataType)?.ttl;
-    if (ttl) await this.cacheService.set(key, enriched, ttl);
+    const ttlCfg = this.config.cacheableDataTypeMap.get(dataType);
+    if (ttlCfg) await this.cacheService.set(key, enriched, this.getTtl(ttlCfg, params));
   }
 
   @Cacheable<[AssetQueryParams], AssetService>({
     key: ({ args: [params] }) => buildMarketCacheKey(params),
-    ttl: ({ args: [params], instance }) => instance.config.cacheableDataTypeMap.get(params.dataType)?.ttl,
+    ttl: ({ args: [params], instance }) => {
+      const ttl = instance.getTtl(instance.config.cacheableDataTypeMap.get(params.dataType), params);
+      return ttl;
+    },
     when: ({ args: [params], instance }) => instance.config.cacheableDataTypeMap.has(params.dataType),
   })
   async getMarketData(params: AssetQueryParams): Promise<Asset[]> {
@@ -47,4 +50,7 @@ export abstract class AssetService {
       throw error;
     }
   }
+
+  protected getTtl = (cfg: CacheConfig | undefined, params: AssetQueryParams) =>
+    typeof cfg?.ttl === 'function' ? cfg.ttl(params) : (cfg?.ttl ?? 0);
 }

@@ -9,18 +9,20 @@ export class AppCacheService {
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
   async get<T>(key: string): Promise<T | undefined> {
-    const t0 = Date.now();
-    const value = await this.cache.get<T>(key);
-    if (value !== undefined) this.logger.debug(`HIT key=${key}`);
-    else this.logger.debug(`MISS key=${key}`);
-    return value;
+    const val = await this.cache.get<T | null>(key);
+    if (val == null) {
+      // null | undefined ⇒ MISS
+      this.logger.debug(`MISS key=${key}`);
+      return undefined;
+    }
+    this.logger.debug(`HIT key=${key}`);
+    return val as T;
   }
 
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
-    const t0 = Date.now();
     if (ttl && ttl > 0) await this.cache.set(key, value, ttl);
     else await this.cache.set(key, value);
-    this.logger.debug(`SET key=${key} ttl=${ttl ?? 0}s time=${Date.now() - t0}ms`);
+    this.logger.debug(`SET key=${key} ttl=${ttl ?? 0}s `);
   }
 
   async del(key: string): Promise<void> {
