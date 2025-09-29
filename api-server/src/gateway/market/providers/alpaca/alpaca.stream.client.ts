@@ -1,8 +1,8 @@
-import { AlpacaWebSocketStockTradeMessage } from '@/common/types';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Observable, Subject } from 'rxjs';
 import WebSocket from 'ws';
+import { AlpacaWebSocketStockTradeMessage } from '../../types/alpaca.stream.types';
 
 @Injectable()
 export class AlpacaStreamClient {

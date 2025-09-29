@@ -1,12 +1,15 @@
 import { CustomHttpService } from '@/common/http/http.service';
 import { Asset, AssetType } from '@/common/types';
 import { Injectable, Logger } from '@nestjs/common';
-import { AssetQueryParams } from '../../types';
+import { AssetQueryParams, Candle } from '../../types';
 import { UpbitMarket, UpbitTicker } from '../../types/upbit.type';
 import { FinancialProvider } from '../financial.provider';
 
 @Injectable()
 export class UpbitCryptoProvider implements FinancialProvider {
+  getCandles(params: AssetQueryParams): Promise<Candle[]> {
+    throw new Error('Method not implemented.');
+  }
   assetType = AssetType.CRYPTO;
   private readonly baseUrl = 'https://api.upbit.com/v1';
   private readonly logger = new Logger(UpbitCryptoProvider.name);

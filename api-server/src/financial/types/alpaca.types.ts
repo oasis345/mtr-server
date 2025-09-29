@@ -110,14 +110,20 @@ export interface AlpacaRawTrade {
   Timestamp: string;
 }
 
-export interface AlpacaWebSocketStockTradeMessage {
-  T: string; // message type, always “t”
-  S: string; // symbol
-  i: number; // trade ID
-  x: string; // exchange code where the trade occurred
-  p: number; // trade price
-  s: number; // trade size
-  c: string[]; // trade condition
-  t: string; // RFC-3339 formatted timestamp with nanosecond precision
-  z: string; // tape
+export interface AlpacaBarsResponse {
+  bars: {
+    [symbol: string]: AlpacaBar;
+  };
+  next_page_token: string | null;
+}
+
+export interface AlpacaBar {
+  c: number; // close
+  h: number; // high
+  l: number; // low
+  n: number; // trade count
+  o: number; // open
+  t: string; // timestamp
+  v: number; // volume
+  vw: number; // volume weighted average price
 }

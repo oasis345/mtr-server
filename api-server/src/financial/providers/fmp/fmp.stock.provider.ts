@@ -1,5 +1,5 @@
 import { Asset, AssetType } from '@/common/types/asset.types';
-import { AssetQueryParams, type Stock, type StockQueryParams } from '@/financial/types';
+import { AssetQueryParams, Candle, type Stock, type StockQueryParams } from '@/financial/types';
 import { FMP_FREE_TIER_SYMBOLS } from '@/financial/types/fmp.types';
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseFinancialProvider } from '../financial.provider';
@@ -19,6 +19,9 @@ type FmpRawStockData = {
 
 @Injectable()
 export class FmpStockProvider extends BaseFinancialProvider {
+  getCandles(params: AssetQueryParams): Promise<Candle[]> {
+    throw new Error('Method not implemented.');
+  }
   assetType = AssetType.STOCK;
   getSnapshots(params: AssetQueryParams): Promise<Asset[]> {
     throw new Error('Method not implemented.');

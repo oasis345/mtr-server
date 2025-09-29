@@ -1,6 +1,7 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { Global, Module } from '@nestjs/common';
 import * as redisStore from 'cache-manager-redis-store';
+import { AppCacheService } from './cache.service';
 
 // Create a custom Redis store with the prefix
 const redisStoreWithPrefix = {
@@ -24,5 +25,7 @@ const redisStoreWithPrefix = {
       store: redisStoreWithPrefix,
     }),
   ],
+  providers: [AppCacheService],
+  exports: [AppCacheService],
 })
 export default class AppCacheModule {}

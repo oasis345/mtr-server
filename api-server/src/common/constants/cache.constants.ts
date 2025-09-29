@@ -1,16 +1,7 @@
-export enum CacheTTL {
-  ONE_MINUTE = 60,
-  FIVE_MINUTES = 5 * 60,
-  FIFTEEN_MINUTES = 15 * 60,
-  THIRTY_MINUTES = 30 * 60,
-  ONE_HOUR = 60 * 60,
-  SIX_HOURS = 6 * 60 * 60,
-  TWELVE_HOURS = 12 * 60 * 60,
-  ONE_DAY = 24 * 60 * 60,
-  ONE_WEEK = 7 * 24 * 60 * 60,
-  ONE_MONTH = 30 * 24 * 60 * 60,
-  EVERY_12_HOURS = 12 * 60 * 60,
-  EVERY_DAY = 24 * 60 * 60,
-  EVERY_WEEK = 7 * 24 * 60 * 60,
-  EVERY_MONTH = 30 * 24 * 60 * 60,
-}
+export const CacheTTL = {
+  ONE_MINUTE: 60,
+  EVERY_12_HOURS: 60 * 60 * 12,
+  ONE_DAY: 60 * 60 * 24,
+  ONE_WEEK: 60 * 60 * 24 * 7,
+  ONE_MONTH: 60 * 60 * 24 * 30,
+};

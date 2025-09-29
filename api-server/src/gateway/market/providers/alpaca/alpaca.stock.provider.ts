@@ -1,4 +1,5 @@
-import { AlpacaWebSocketStockTradeMessage, Asset, AssetType } from '@/common/types';
+import { Asset, AssetType } from '@/common/types';
+import { AlpacaWebSocketStockTradeMessage } from '@/gateway/market/types/alpaca.stream.types';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Observable, Subject, filter, map } from 'rxjs';
@@ -41,7 +42,7 @@ export class AlpacaStockStreamProvider implements MarketStreamProvider, OnModule
   }
 
   public subscribe(symbols: string[]): void {
-    this.logger.log(`Subscribing to stock data: [${symbols.join(', ')}]`);
+    // this.logger.log(`Subscribing to stock data: [${symbols.join(', ')}]`);
     this.streamClient.send(
       JSON.stringify({
         action: 'subscribe',
@@ -52,7 +53,7 @@ export class AlpacaStockStreamProvider implements MarketStreamProvider, OnModule
   }
 
   public unsubscribe(symbols: string[]): void {
-    this.logger.log(`Unsubscribing from stock data: [${symbols.join(', ')}]`);
+    // this.logger.log(`Unsubscribing from stock data: [${symbols.join(', ')}]`);
     this.streamClient.send(
       JSON.stringify({
         action: 'unsubscribe',

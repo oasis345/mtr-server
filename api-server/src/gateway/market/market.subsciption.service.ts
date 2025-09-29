@@ -1,7 +1,6 @@
+import { AppCacheService } from '@/cache/cache.service';
 import { Asset, AssetType, STREAM_PROVIDER_MAP } from '@/common/types';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
-import { Cache } from 'cache-manager';
 import { BehaviorSubject, Observable, Subject, filter, map, withLatestFrom } from 'rxjs';
 import { MarketChannel, MarketPayload } from './dto/market.subscription.dto';
 import { MarketStreamProvider } from './types/provider.interface';
@@ -21,7 +20,7 @@ export class MarketSubscriptionService {
   constructor(
     @Inject(STREAM_PROVIDER_MAP)
     private readonly streamProviders: Map<AssetType, MarketStreamProvider>,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly cacheService: AppCacheService,
   ) {
     this.initializeStreamProviders();
     this.setupChannelBroadcasting();
@@ -87,7 +86,7 @@ export class MarketSubscriptionService {
       }
       default: {
         // mostActive/gainers/losers 등
-        const cachedData = await this.cacheManager.get<Asset[]>(defaultChannelId);
+        const cachedData = await this.cacheService.get<Asset[]>(defaultChannelId);
         symbols = (cachedData ?? []).map(a => a.symbol);
         break;
       }

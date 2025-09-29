@@ -16,4 +16,5 @@ export interface Asset {
   currency?: string; // USD, KRW, BTC 등
   previousClose?: number; // 전일 종가
   timestamp?: Date;
+  logo?: string;
 }
