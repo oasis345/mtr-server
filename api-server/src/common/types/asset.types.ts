@@ -12,7 +12,7 @@ export interface Asset {
   price?: number;
   volume?: number;
   change?: number;
-  changesPercentage?: number;
+  changePercentage?: number;
   currency?: string; // USD, KRW, BTC 등
   previousClose?: number; // 전일 종가
   timestamp?: Date;

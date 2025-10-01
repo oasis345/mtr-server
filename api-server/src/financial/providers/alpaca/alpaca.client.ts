@@ -46,7 +46,7 @@ export class AlpacaClient {
 
     return this.httpService.get<T>(url, {
       headers: this.headers,
-      params: params,
+      params,
     });
   }
 

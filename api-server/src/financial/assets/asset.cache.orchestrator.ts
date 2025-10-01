@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { AssetService } from '../assets/asset.service';
 import { MarketDataType } from '../types';
+import { AssetService } from './asset.service';
 
 @Injectable()
 export class AssetCacheOrchestrator {
@@ -10,14 +10,13 @@ export class AssetCacheOrchestrator {
   constructor(private readonly schedulerRegistry: SchedulerRegistry) {}
 
   init(service: AssetService) {
-    // 1) 초기 웜업(정의된 순서대로)
     void this.warmup(service);
-    // 2) 크론 등록
     this.registerCronJobs(service);
   }
+
   private async warmup(service: AssetService) {
     const order = Array.from(service['config'].cacheableDataTypeMap.entries())
-      .filter(([, cfg]) => cfg?.warmup !== false) // ← warmup=false 제외
+      .filter(([, cfg]) => cfg?.warmup !== false)
       .map(([dataType]) => dataType);
 
     if (order.length === 0) return;
@@ -51,14 +50,14 @@ export class AssetCacheOrchestrator {
           try {
             await service.refreshCache(t);
           } catch {
-            this.logger.error(`[Cron] failed: ${t}`);
+            this.logger.error(`[Cron] ${jobName} failed: ${t}`);
           }
         }
       });
 
       this.schedulerRegistry.addCronJob(jobName, job);
       job.start();
-      this.logger.log(`Registered "${jobName}" @ "${cronExpr}"`);
+      this.logger.log(`Registered "${jobName}" @ "${cronExpr}" for [${types.join(', ')}]`);
     }
   }
 }

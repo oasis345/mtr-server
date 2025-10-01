@@ -1,7 +1,7 @@
 import { Asset, AssetType, ChartTimeframe } from '@/common/types';
 import { normalizeSymbols } from '@/common/utils/normalize';
 import { Transform } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsPositive, Max, Min } from 'class-validator';
+import { IsEnum, IsIn, IsInt, IsOptional, IsPositive, Max, Min } from 'class-validator';
 import { FinancialProvider } from '../providers/financial.provider';
 
 export enum MarketDataType {
@@ -28,12 +28,24 @@ export class AssetQueryParams {
   @IsPositive()
   @Min(1)
   @Max(1000) // API 남용 방지를 위한 최대값 설정
-  @Transform(({ value }) => parseInt(value, 10))
+  @Transform(({ value }) => parseInt(value))
   limit?: number; // 제한
   timeframe?: ChartTimeframe; // 시간대
-  // orderBy?: string; // 정렬 순서
-  // start?: string; // 시작 시간
-  // end?: string; // 종료 시간
+}
+
+export class CandleQueryParams extends AssetQueryParams {
+  @IsOptional()
+  @Transform(({ value }: { value: string }) => value.toLowerCase())
+  @IsIn(['asc', 'desc'])
+  orderBy?: 'desc' | 'asc'; // 정렬 순서
+  @IsOptional()
+  start?: string; // 시작 시간
+  @IsOptional()
+  end?: string; // 종료 시간
+  @IsOptional()
+  @Transform(({ value }) => parseInt(value))
+  limit?: number; // 제한
+  nextDateTime?: string; // 다음 날짜 시간
 }
 
 export type AssetMethod<T extends AssetQueryParams = AssetQueryParams> = (params: T) => Promise<Asset[]>;
@@ -80,6 +92,11 @@ export interface CacheConfig {
 
 export interface Candle {
   /**
+   * 자산 타입 (from Alpaca's 'a')
+   */
+  assetType: AssetType;
+
+  /**
    * 종목을 식별하는 심볼 (e.g., 'TSLA', 'BTC/KRW')
    */
   symbol: string;
@@ -121,7 +138,19 @@ export interface Candle {
 
   // 거래량 가중 평균 가격
   vwap: number;
+
+  /**
+   * 통화 (from Alpaca's 'c')
+   */
+  currency: string;
+
+  changePercentage?: number;
 }
+
+export type CandleResponse = {
+  candles: Candle[];
+  nextDateTime: string | null;
+};
 
 export interface TossCandle {
   market: string; // 시장

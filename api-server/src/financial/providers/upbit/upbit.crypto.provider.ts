@@ -1,20 +1,20 @@
 import { CustomHttpService } from '@/common/http/http.service';
 import { Asset, AssetType } from '@/common/types';
 import { Injectable, Logger } from '@nestjs/common';
-import { AssetQueryParams, Candle } from '../../types';
+import { AssetQueryParams, CandleQueryParams, CandleResponse } from '../../types';
 import { UpbitMarket, UpbitTicker } from '../../types/upbit.type';
 import { FinancialProvider } from '../financial.provider';
 
 @Injectable()
 export class UpbitCryptoProvider implements FinancialProvider {
-  getCandles(params: AssetQueryParams): Promise<Candle[]> {
-    throw new Error('Method not implemented.');
-  }
   assetType = AssetType.CRYPTO;
   private readonly baseUrl = 'https://api.upbit.com/v1';
   private readonly logger = new Logger(UpbitCryptoProvider.name);
 
   constructor(private readonly httpService: CustomHttpService) {}
+  getCandles(params: CandleQueryParams): Promise<CandleResponse> {
+    throw new Error('Method not implemented.');
+  }
 
   private async loadKrwMarkets(): Promise<string[]> {
     const markets: UpbitMarket[] = await this.httpService.get<UpbitMarket[]>(`${this.baseUrl}/market/all`);
@@ -95,7 +95,7 @@ export class UpbitCryptoProvider implements FinancialProvider {
         name: data.market.replace('KRW-', ''),
         price: data.trade_price,
         change: data.signed_change_price,
-        changesPercentage: data.signed_change_rate,
+        changePercentage: data.signed_change_rate,
         volume: data.acc_trade_volume_24h,
         currency: 'KRW',
         assetType: AssetType.CRYPTO,

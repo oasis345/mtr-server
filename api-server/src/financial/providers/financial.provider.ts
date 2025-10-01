@@ -1,5 +1,5 @@
 import { Asset, AssetType } from '@/common/types';
-import type { AssetQueryParams, Candle } from '../types';
+import type { AssetQueryParams, CandleQueryParams, CandleResponse } from '../types';
 
 export const FINANCIAL_PROVIDERS = 'FINANCIAL_PROVIDERS';
 
@@ -19,7 +19,7 @@ export interface FinancialProvider {
   getTopLosers(params: AssetQueryParams): Promise<Asset[]>;
   // 캔들 조회
   // getCandle(params: AssetQueryParams): Promise<Candle[]>;
-  getCandles(params: AssetQueryParams): Promise<Candle[]>;
+  getCandles(params: CandleQueryParams): Promise<CandleResponse>;
 }
 
 export abstract class BaseFinancialProvider implements FinancialProvider {
@@ -32,19 +32,20 @@ export abstract class BaseFinancialProvider implements FinancialProvider {
   abstract getTopGainers(params: AssetQueryParams): Promise<Asset[]>;
   abstract getTopLosers(params: AssetQueryParams): Promise<Asset[]>;
   // abstract getCandle(params: AssetQueryParams): Promise<Candle[]>;
-  abstract getCandles(params: AssetQueryParams): Promise<Candle[]>;
+  abstract getCandles(params: CandleQueryParams): Promise<CandleResponse>;
 
   protected getDefaultTimeRange(timeframe: string) {
     const now = new Date();
-    const end: Date = new Date(now.getTime() - 15 * 60 * 1000); // 무료 계정: 최근 15분 제외 (실시간 제한)
+    // 현재 시간(15분 지연)을 기준으로 end 설정 무료 버전
+    const end = new Date(now.getTime() - 15 * 60 * 1000);
 
     let daysBack: number;
 
     // timeframe별 기본 기간 (무료 계정 고려)
     if (timeframe.includes('Min') || timeframe.includes('T')) {
-      daysBack = 7; // 무료: 3일, 유료: 1주일
+      daysBack = 7; // 무료 1주일
     } else if (timeframe.includes('Hour') || timeframe.includes('H')) {
-      daysBack = 30; // 무료: 2주, 유료: 1개월
+      daysBack = 30; // 무료 1개월
     } else if (timeframe.includes('Day') || timeframe.includes('D')) {
       daysBack = 365; // 일봉은 제약 없음
     } else if (timeframe.includes('Week') || timeframe.includes('W')) {

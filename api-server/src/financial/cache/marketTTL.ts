@@ -20,3 +20,5 @@ export const candleTTLSeconds = (timeframe?: string) => {
   if (tf.includes('1M') || tf.includes('month') || tf.includes('12M')) return 604800; // 7d
   return 300; // 기본
 };
+
+export const symbolTTLSeconds = () => (isUsMarketOpenNow() ? 10 : 60);

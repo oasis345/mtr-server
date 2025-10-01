@@ -1,4 +1,5 @@
 import { Asset, AssetType } from '@/common/types/asset.types';
+import { getErrorMessage } from '@/common/utils/error';
 import type {
   AlpacaAsset,
   AlpacaBar,
@@ -9,7 +10,7 @@ import type {
   AlpacaSnapshot,
   AlpacaSnapshotsResponse,
 } from '@/financial/types/alpaca.types';
-import { AssetQueryParams, Candle } from '@/financial/types/common.types';
+import { AssetQueryParams, Candle, CandleQueryParams, CandleResponse } from '@/financial/types/common.types';
 import type { Stock } from '@/financial/types/stock.types';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { BaseFinancialProvider } from '../financial.provider';
@@ -42,7 +43,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
         exchange: asset.exchange,
       }));
     } catch (error) {
-      this.logger.error('Failed to get assets from Alpaca');
+      this.logger.error('Failed to get assets from Alpaca', getErrorMessage(error));
       return [];
     }
   }
@@ -62,14 +63,14 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
       if (!snapshots) return [];
       return Object.keys(snapshots).map(symbol => this.normalizeSnapshotToStock(symbol, snapshots[symbol]));
     } catch (error) {
-      this.logger.error('Failed to get snapshots from Alpaca');
+      this.logger.error('Failed to get snapshots from Alpaca', getErrorMessage(error));
       return [];
     }
   }
 
   // 🎯 가장 활발한 종목 + 상세 정보 조합
   async getMostActive(params: AssetQueryParams): Promise<Stock[]> {
-    const searchParams = new URLSearchParams({ top: String(params.limit ?? 10) });
+    const searchParams = new URLSearchParams({ top: String(params.limit ?? 100) });
     try {
       // 1단계: Most Active 목록 조회 (거래량 정보)
       const mostActiveResponse = await this.alpacaClient.getMarketData<AlpacaMostActiveResponse>(
@@ -98,7 +99,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
         };
       });
     } catch (error) {
-      this.logger.error('Failed to get most active stocks from Alpaca');
+      this.logger.error('Failed to get most active stocks from Alpaca', getErrorMessage(error));
       return [];
     }
   }
@@ -114,7 +115,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
         searchParams,
       );
     } catch (error) {
-      this.logger.error('Failed to get movers data from Alpaca');
+      this.logger.error('Failed to get movers data from Alpaca', getErrorMessage(error));
       return { gainers: [], losers: [] };
     }
   }
@@ -129,52 +130,104 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
     return response.losers.map(item => this.normalizeToMoverToStock(item));
   }
 
-  private async _getCandles(params: AssetQueryParams): Promise<AlpacaBarsResponse> {
+  private getPeriodMs(timeframe: string): number {
+    const match = timeframe.match(/^(\d+)([a-zA-Z]+)$/);
+    if (!match) return 24 * 60 * 60 * 1000; // 기본값 1일
+
+    const value = parseInt(match[1]);
+    const unit = match[2].toLowerCase();
+    const dayMs = 24 * 60 * 60 * 1000;
+
+    if (unit.startsWith('min')) return value * 60 * 1000;
+    if (unit.startsWith('h')) return value * 60 * 60 * 1000;
+    if (unit.startsWith('d')) return value * dayMs;
+    if (unit.startsWith('w')) return value * 7 * dayMs;
+    if (unit.startsWith('m')) return value * 30 * dayMs; // 근사치
+
+    return dayMs;
+  }
+
+  private async _getCandles(params: CandleQueryParams): Promise<AlpacaBarsResponse> {
     if (!params.timeframe) throw new BadRequestException('timeframe is required');
     if (!params.symbols || params.symbols.length === 0) throw new BadRequestException('symbols are required');
 
-    const timeRange = this.getDefaultTimeRange(params.timeframe);
-    const response = await this.alpacaClient.getMarketData<AlpacaBarsResponse>(
-      'v2/stocks/bars',
-      new URLSearchParams({
-        symbols: params.symbols.join(','),
-        timeframe: params.timeframe,
-        start: timeRange.start,
-        end: timeRange.end,
-        adjustment: 'all',
-      }),
-    );
+    const sp = new URLSearchParams();
+    sp.set('symbols', params.symbols.join(','));
+    sp.set('timeframe', params.timeframe);
+    sp.set('adjustment', 'all');
+    sp.set('sort', 'desc');
 
-    return response;
+    // 등락율 계산을 위한 추가 캔들 요청
+    const limit = params.limit ?? 100;
+    const itemsToFetch = limit + 1;
+    sp.set('limit', itemsToFetch.toString());
+
+    // --- ❗️ 핵심 수정: 동적 슬라이딩 윈도우 로직 적용 ---
+    let effectiveEnd: string;
+    let effectiveStart: string;
+
+    if (params.start) {
+      // 두 번째 호출부터: client가 보낸 start(nextDateTime)가 새로운 end가 됨 Alpaca 호환을 위해
+      effectiveEnd = params.start;
+    } else {
+      // 첫 호출: 기본 end 사용
+      const timeRange = this.getDefaultTimeRange(params.timeframe);
+      effectiveEnd = timeRange.end;
+    }
+
+    // end를 기준으로, 요청할 limit을 커버할 수 있는 작은 크기의 start를 동적으로 계산
+    const endDate = new Date(effectiveEnd);
+    const periodMs = this.getPeriodMs(params.timeframe);
+    // 주말, 휴장일 등을 고려하여 넉넉하게 기간 설정 (1.5배)
+    const durationMs = itemsToFetch * periodMs * 1.5;
+    const startDate = new Date(endDate.getTime() - durationMs);
+    effectiveStart = startDate.toISOString();
+
+    sp.set('start', effectiveStart);
+    sp.set('end', effectiveEnd);
+
+    try {
+      const response = await this.alpacaClient.getMarketData<AlpacaBarsResponse>('v2/stocks/bars', sp);
+      return response;
+    } catch (error) {
+      this.logger.error('Failed to get candles from Alpaca', getErrorMessage(error));
+      this.logger.debug(`Alpaca request on error: ${sp.toString()}`);
+      return { bars: {}, next_page_token: null };
+    }
   }
 
-  // async getCandles(params: AssetQueryParams): Promise<Record<string, Candle[]>> {
-  //   const response = await this._getCandles(params);
-  //   const barsBySymbol = response?.bars ?? {};
-
-  //   if (!params.symbols || params.symbols.length === 0) return {};
-
-  //   const result = Object.fromEntries(
-  //     params.symbols.map(symbol => {
-  //       const entry = barsBySymbol[symbol];
-  //       const list = !entry ? [] : Array.isArray(entry) ? entry : [entry];
-  //       const candles = list.map(bar => this.normalizeToCandle(symbol, bar));
-  //       return [symbol, candles] as const; // ← [key, value] 튜플 보장
-  //     }),
-  //   );
-  //   return result;
-  // }
-
-  async getCandles(params: AssetQueryParams): Promise<Candle[]> {
+  async getCandles(params: CandleQueryParams): Promise<CandleResponse> {
     const response = await this._getCandles(params);
     const barsBySymbol = response?.bars ?? {};
+    const [symbol] = params.symbols;
 
-    const result: Candle[] = Object.entries(barsBySymbol).flatMap(([symbol, entry]) => {
-      const list = !entry ? [] : Array.isArray(entry) ? entry : [entry];
-      return list.map(bar => this.normalizeToCandle(symbol, bar));
+    const raw = barsBySymbol[symbol];
+    const list = !raw ? [] : Array.isArray(raw) ? raw : [raw];
+
+    const candles = list.map(bar => this.normalizeToCandle(symbol, bar));
+    candles.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const withChange = this.addChangePercentage(candles);
+
+    const limit = params.limit ?? 100;
+    const data = withChange.slice(0, limit);
+
+    // limit+1개보다 적은 데이터를 반환했다면, 더 이상 과거 데이터가 없다는 뜻이므로 nextDateTime은 null이 됩니다.
+    const nextDateTime =
+      withChange.length > limit && data.length
+        ? new Date(new Date(data[data.length - 1].timestamp).getTime() - 1).toISOString()
+        : null;
+
+    return { candles: data, nextDateTime };
+  }
+
+  private addChangePercentage(candles: Candle[]): Candle[] {
+    return candles.map((c, i, arr) => {
+      const prev = arr[i + 1]; // 직전(하루 전) 캔들
+      const pct = prev?.close ? (c.close - prev.close) / prev.close : null;
+      // `Candle` 타입과 일치시키기 위해 'changesPercentage' -> 'changePercentage'로 변경
+      return { ...c, changePercentage: pct };
     });
-
-    return result;
   }
 
   normalizeToCandle(symbol: string, data: AlpacaBar): Candle {
@@ -188,6 +241,8 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
       timestamp: data.t,
       tradeCount: data.n,
       vwap: data.vw,
+      assetType: AssetType.STOCK,
+      currency: 'USD',
     };
   }
 
@@ -198,7 +253,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
       symbol: mover.symbol,
       price: mover.price,
       change: mover.change,
-      changesPercentage: mover.percent_change / 100,
+      changePercentage: mover.percent_change / 100,
       currency: 'USD',
     };
   }
@@ -208,14 +263,14 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
     const previousClose = snapshot.prevDailyBar?.c || 0;
     const change = previousClose ? currentPrice - previousClose : 0;
     // 순수 소수(Ratio)로 계산
-    const changesPercentage = previousClose ? change / previousClose : 0;
+    const changePercentage = previousClose ? change / previousClose : 0;
 
     return {
       assetType: AssetType.STOCK,
       symbol,
       price: currentPrice,
       change: parseFloat(change.toFixed(2)),
-      changesPercentage: changesPercentage,
+      changePercentage: changePercentage, // 여기도 함께 수정 (changePercentage -> changePercentage)
       volume: snapshot.latestTrade?.s,
       previousClose: snapshot.prevDailyBar?.c,
       currency: 'USD',

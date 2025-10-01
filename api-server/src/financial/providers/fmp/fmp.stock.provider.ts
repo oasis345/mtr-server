@@ -1,5 +1,11 @@
 import { Asset, AssetType } from '@/common/types/asset.types';
-import { AssetQueryParams, Candle, type Stock, type StockQueryParams } from '@/financial/types';
+import {
+  AssetQueryParams,
+  CandleQueryParams,
+  CandleResponse,
+  type Stock,
+  type StockQueryParams,
+} from '@/financial/types';
 import { FMP_FREE_TIER_SYMBOLS } from '@/financial/types/fmp.types';
 import { Injectable, Logger } from '@nestjs/common';
 import { BaseFinancialProvider } from '../financial.provider';
@@ -12,14 +18,14 @@ type FmpRawStockData = {
   companyName?: string;
   price: number;
   change?: number;
-  changesPercentage?: number;
+  changePercentage?: number;
   volume?: number;
   marketCap?: number;
 };
 
 @Injectable()
 export class FmpStockProvider extends BaseFinancialProvider {
-  getCandles(params: AssetQueryParams): Promise<Candle[]> {
+  getCandles(params: CandleQueryParams): Promise<CandleResponse> {
     throw new Error('Method not implemented.');
   }
   assetType = AssetType.STOCK;
@@ -35,7 +41,7 @@ export class FmpStockProvider extends BaseFinancialProvider {
   normalizeToAsset(rawData: FmpRawStockData): Stock {
     const name = rawData.companyName || rawData.name || '';
     const change = rawData.change ?? 0;
-    const changesPercentage = rawData.changesPercentage ?? 0;
+    const changePercentage = rawData.changePercentage ?? 0;
 
     return {
       assetType: AssetType.STOCK,
@@ -43,7 +49,7 @@ export class FmpStockProvider extends BaseFinancialProvider {
       name,
       price: rawData.price,
       change,
-      changesPercentage,
+      changePercentage,
       volume: rawData.volume ?? null,
     };
   }

@@ -3,7 +3,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { AssetService } from './assets/asset.service';
 import { CryptoService } from './assets/crypto/crypto.service';
 import { StockService } from './assets/stock/stock.service';
-import { AssetQueryParams } from './types';
+import { AssetQueryParams, CandleQueryParams, CandleResponse } from './types';
 
 @Injectable()
 export class FinancialService {
@@ -33,8 +33,12 @@ export class FinancialService {
 
   async getMarketData(params: AssetQueryParams): Promise<Asset[]> {
     const service = this.prepareService(params);
-
     return await service.getMarketData(params);
+  }
+
+  async getCandles(params: CandleQueryParams): Promise<CandleResponse> {
+    const service = this.prepareService(params);
+    return await service.getCandles(params);
   }
 
   private normalizeSymbols(input?: string | string[]): string[] {

@@ -30,7 +30,6 @@ export class AlpacaStreamClient {
     this.socket.on('message', (data: WebSocket.Data) => {
       try {
         const messages = JSON.parse(data.toString());
-        console.log(messages);
         if (Array.isArray(messages)) {
           messages.forEach(message => this.messageStream.next(message));
         } else {

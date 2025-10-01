@@ -8,25 +8,21 @@ export class AppCacheService {
 
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
-  async get<T>(key: string): Promise<T | undefined> {
+  async get<T>(key: string, source?: string): Promise<T | undefined> {
     const val = await this.cache.get<T | null>(key);
-    if (val == null) {
-      // null | undefined ⇒ MISS
-      this.logger.debug(`MISS key=${key}`);
-      return undefined;
-    }
-    this.logger.debug(`HIT key=${key}`);
-    return val as T;
+    const hit = val != null;
+    this.logger.debug(`${hit ? 'HIT' : 'MISS'} key=${key}${source ? ` source=${source}` : ''}`);
+    return hit ? (val as T) : undefined;
   }
 
-  async set<T>(key: string, value: T, ttl?: number): Promise<void> {
+  async set<T>(key: string, value: T, ttl?: number, source?: string): Promise<void> {
     if (ttl && ttl > 0) await this.cache.set(key, value, ttl);
     else await this.cache.set(key, value);
-    this.logger.debug(`SET key=${key} ttl=${ttl ?? 0}s `);
+    this.logger.debug(`SET key=${key} ttl=${ttl ?? 0}s${source ? ` source=${source}` : ''}`);
   }
 
-  async del(key: string): Promise<void> {
+  async del(key: string, source?: string): Promise<void> {
     await this.cache.del(key);
-    this.logger.debug(`DEL key=${key}`);
+    this.logger.debug(`DEL key=${key}${source ? ` source=${source}` : ''}`);
   }
 }

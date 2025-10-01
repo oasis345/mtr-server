@@ -1,8 +1,9 @@
+import { ChartTimeframe } from '@/common/types';
 import { AssetType } from '@/common/types/asset.types';
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { FinancialService } from './financial.service';
-import { AssetQueryParams, MarketDataType } from './types';
+import { AssetQueryParams, CandleQueryParams, MarketDataType } from './types';
 
 @ApiTags('Financial')
 @Controller('financial')
@@ -51,6 +52,33 @@ export class FinancialController {
   })
   @Get('market')
   async getMarketData(@Query() query: AssetQueryParams) {
-    return this.financialService.getMarketData(query);
+    return await this.financialService.getMarketData(query);
+  }
+
+  @ApiOperation({ summary: '캔들 데이터 조회' })
+  @ApiQuery({
+    name: 'symbols',
+    required: true,
+    description: '캔들을 조회할 종목 심볼',
+  })
+  @ApiQuery({
+    name: 'timeframe',
+    required: true,
+    description: '캔들 시간대',
+    enum: ChartTimeframe,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'nextDateTime',
+    required: false,
+    type: String,
+  })
+  @Get('candles')
+  async getCandles(@Query() query: CandleQueryParams) {
+    return await this.financialService.getCandles(query);
   }
 }
