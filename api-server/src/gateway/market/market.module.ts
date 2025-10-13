@@ -1,29 +1,26 @@
-import { STREAM_PROVIDER_MAP } from '@/common/types';
-import { AssetType } from '@/common/types/asset.types';
+import { AssetType, STREAM_PROVIDER_MAP } from '@/common/types';
 import { Module } from '@nestjs/common';
 import { MarketGateway } from './market.gateway';
 import { MarketSubscriptionService } from './market.subsciption.service';
 import { AlpacaStockStreamProvider } from './providers/alpaca/alpaca.stock.provider';
-import { MarketStreamProvider } from './types/provider.interface';
+import { UpbitCryptoStreamProvider } from './providers/upbit/upbit.crypto.provider';
+import type { MarketStreamProvider } from './types';
 
 @Module({
   providers: [
     MarketGateway,
     MarketSubscriptionService,
     AlpacaStockStreamProvider,
-    // TODO: UpbitCryptoStreamProvider가 생기면 여기에 추가
-
+    UpbitCryptoStreamProvider,
     {
       provide: STREAM_PROVIDER_MAP,
       useFactory: (...providers: MarketStreamProvider[]) => {
         const map = new Map<AssetType, MarketStreamProvider>();
-        providers.forEach(provider => {
-          map.set(provider.assetType, provider);
-        });
+        providers.forEach(p => map.set(p.assetType, p));
         return map;
       },
       // 주입받을 Provider 클래스들을 명시합니다.
-      inject: [AlpacaStockStreamProvider /*, UpbitCryptoStreamProvider */],
+      inject: [AlpacaStockStreamProvider, UpbitCryptoStreamProvider],
     },
   ],
   exports: [MarketGateway],

@@ -61,7 +61,7 @@ export const STOCK_ASSET_CONFIG: AssetServiceConfig = {
     [MarketDataType.SYMBOL, { ttl: () => symbolTTLSeconds(), withLogo: true, warmup: false }],
   ]),
   defaultLimits: new Map<MarketDataType, number>([
-    [MarketDataType.MOST_ACTIVE, 50],
+    [MarketDataType.MOST_ACTIVE, 100],
     [MarketDataType.GAINERS, 50],
     [MarketDataType.LOSERS, 50],
   ]),

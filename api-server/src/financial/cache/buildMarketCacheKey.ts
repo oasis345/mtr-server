@@ -14,9 +14,9 @@ export const buildMarketCacheKey = (p: {
   const q = [
     p.start && `start=${p.start}`,
     p.end && `end=${p.end}`,
-    p.adjustment && `adj=${p.adjustment}`,
-    p.orderBy && `order=${p.orderBy}`,
-    typeof p.limit === 'number' && `limit=${p.limit}`,
+    // p.adjustment && `adj=${p.adjustment}`,
+    // p.orderBy && `order=${p.orderBy}`,
+    // typeof p.limit === 'number' && `limit=${p.limit}`,
   ]
     .filter(Boolean)
     .join('&');
