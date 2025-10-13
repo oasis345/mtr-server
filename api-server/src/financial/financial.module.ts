@@ -44,7 +44,7 @@ import { LogoService } from './services/logo.service';
     AssetCacheOrchestrator,
     {
       provide: StockService,
-      useFactory: (
+      useFactory: async (
         registry: ProviderRegistry,
         cache: AppCacheService,
         cfg: AssetServiceConfig,
@@ -52,21 +52,21 @@ import { LogoService } from './services/logo.service';
         orchestrator: AssetCacheOrchestrator,
       ) => {
         const svc = new StockService(registry, cache, cfg, logo);
-        orchestrator.init(svc);
+        await orchestrator.init(svc);
         return svc;
       },
       inject: [ProviderRegistry, AppCacheService, STOCK_ASSET_CONFIG.name, LogoService, AssetCacheOrchestrator],
     },
     {
       provide: CryptoService,
-      useFactory: (
+      useFactory: async (
         registry: ProviderRegistry,
         cache: AppCacheService,
         cfg: AssetServiceConfig,
         orchestrator: AssetCacheOrchestrator,
       ) => {
         const svc = new CryptoService(registry, cache, cfg);
-        orchestrator.init(svc);
+        await orchestrator.init(svc);
         return svc;
       },
       inject: [ProviderRegistry, AppCacheService, CRYPTO_ASSET_CONFIG.name, AssetCacheOrchestrator],

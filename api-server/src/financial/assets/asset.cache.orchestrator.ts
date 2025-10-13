@@ -9,8 +9,8 @@ export class AssetCacheOrchestrator {
   private readonly logger = new Logger(AssetCacheOrchestrator.name);
   constructor(private readonly schedulerRegistry: SchedulerRegistry) {}
 
-  init(service: AssetService) {
-    void this.warmup(service);
+  async init(service: AssetService) {
+    await this.warmup(service);
     this.registerCronJobs(service);
   }
 

@@ -63,7 +63,7 @@ export class MarketSubscriptionService {
     const provider = this.streamProviders.get(assetType);
     if (!provider) throw new BadRequestException(`No provider found for asset type: "${assetType}"`);
 
-    const defaultChannelId = `market:${assetType}:${channel}`;
+    const defaultChannelId = `market:${assetType}:${channel}:`;
     let channelId = defaultChannelId;
     let symbols: string[] = [];
 

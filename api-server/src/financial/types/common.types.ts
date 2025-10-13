@@ -137,7 +137,7 @@ export interface Candle {
   tradeCount?: number;
 
   // 거래량 가중 평균 가격
-  vwap: number;
+  vwap?: number;
 
   /**
    * 통화 (from Alpaca's 'c')

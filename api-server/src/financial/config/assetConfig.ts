@@ -20,12 +20,19 @@ export const CRYPTO_ASSET_CONFIG: AssetServiceConfig = {
   dataTypeMethodMap: new Map([
     [MarketDataType.ASSETS, 'getAssets'],
     [MarketDataType.TOP_TRADED, 'getTopTraded'],
+    [MarketDataType.SYMBOL, 'getSnapshots'],
+    [MarketDataType.CANDLES, 'getCandles'],
   ]),
   cacheableDataTypeMap: new Map<MarketDataType, CacheConfig>([
     [MarketDataType.ASSETS, { ttl: CacheTTL.EVERY_12_HOURS, refreshInterval: CronExpression.EVERY_12_HOURS }],
     [MarketDataType.TOP_TRADED, { ttl: CacheTTL.ONE_MINUTE, refreshInterval: CronExpression.EVERY_MINUTE }],
+    [MarketDataType.SYMBOL, { ttl: () => symbolTTLSeconds(), withLogo: false, warmup: false }],
+    [MarketDataType.CANDLES, { ttl: p => candleTTLSeconds(p.timeframe), warmup: false }],
   ]),
-  defaultLimits: new Map<MarketDataType, number>([[MarketDataType.TOP_TRADED, 200]]),
+  defaultLimits: new Map<MarketDataType, number>([
+    [MarketDataType.TOP_TRADED, 200],
+    [MarketDataType.CANDLES, 200],
+  ]),
 };
 
 export const STOCK_ASSET_CONFIG: AssetServiceConfig = {

@@ -22,16 +22,6 @@ export abstract class AssetService {
     return Promise.resolve(assets);
   }
 
-  // async refreshCache(dataType: MarketDataType, limit?: number): Promise<void> {
-  //   const actualLimit = limit ?? this.config.defaultLimits.get(dataType);
-  //   const params = { assetType: this.assetType, dataType, limit: actualLimit };
-  //   const data = await this.registry.call<Asset[]>(this.assetType, dataType, params);
-  //   const enrichedData = await this.afterCallProviderMethod(data, dataType);
-  //   const key = buildMarketCacheKey(params); // ← limit 포함된 동일 키
-  //   const ttlCfg = this.config.cacheableDataTypeMap.get(dataType);
-  //   if (ttlCfg) await this.cacheService.set(key, enrichedData, this.getTtl(ttlCfg, params));
-  // }
-
   async refreshCache(dataType: MarketDataType, limit?: number): Promise<void> {
     const actualLimit = limit ?? this.config.defaultLimits.get(dataType);
     const params = { assetType: this.assetType, dataType, limit: actualLimit };
@@ -100,4 +90,24 @@ export abstract class AssetService {
 
   protected getTtl = (cfg: CacheConfig | undefined, params: AssetQueryParams) =>
     typeof cfg?.ttl === 'function' ? cfg.ttl(params) : (cfg?.ttl ?? 0);
+
+  getDefaultLimit(dataType: MarketDataType): number | undefined {
+    return this.config.defaultLimits.get(dataType);
+  }
+
+  protected async enrichName(assets: Asset[]): Promise<Asset[]> {
+    const assetsKey = buildMarketCacheKey({ assetType: this.assetType, dataType: MarketDataType.ASSETS });
+    const baseAssets = await this.cacheService.get<Asset[]>(assetsKey);
+    const nameMap = new Map<string, string>();
+    baseAssets?.forEach(a => {
+      if (a.name && a.name !== a.symbol) nameMap.set(a.symbol, a.name);
+    });
+
+    const withName = assets.map(a => ({
+      ...a,
+      name: nameMap.get(a.symbol) || a.name || a.symbol,
+    }));
+
+    return withName;
+  }
 }

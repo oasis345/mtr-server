@@ -21,4 +21,4 @@ export const candleTTLSeconds = (timeframe?: string) => {
   return 300; // 기본
 };
 
-export const symbolTTLSeconds = () => (isUsMarketOpenNow() ? 10 : 60);
+export const symbolTTLSeconds = () => 10;

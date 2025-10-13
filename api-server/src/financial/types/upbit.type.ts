@@ -64,8 +64,6 @@ export interface UpbitTrade {
 // GET /v1/candles/months
 export interface UpbitCandle {
   market: string;
-  candle_date_time_utc: string;
-  candle_date_time_kst: string;
   opening_price: number;
   high_price: number;
   low_price: number;
@@ -73,6 +71,9 @@ export interface UpbitCandle {
   timestamp: number;
   candle_acc_trade_price: number;
   candle_acc_trade_volume: number;
+  candle_date_time_kst: string;
+  candle_date_time_utc: string;
+  first_day_of_period: string;
 }
 
 // GET /v1/market/all

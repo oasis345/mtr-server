@@ -13,6 +13,7 @@ import type {
 import { AssetQueryParams, Candle, CandleQueryParams, CandleResponse } from '@/financial/types/common.types';
 import type { Stock } from '@/financial/types/stock.types';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import * as _ from 'lodash';
 import { BaseFinancialProvider } from '../financial.provider';
 import { AlpacaClient } from './alpaca.client';
 
@@ -188,6 +189,26 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
 
     try {
       const response = await this.alpacaClient.getMarketData<AlpacaBarsResponse>('v2/stocks/bars', sp);
+      while (response.next_page_token) {
+        response.next_page_token = response.next_page_token ?? null;
+
+        const enough = params.symbols.every(sym => {
+          const arr = Array.isArray(response.bars?.[sym])
+            ? (response.bars as any)[sym]
+            : response.bars?.[sym]
+              ? [(response.bars as any)[sym]]
+              : [];
+          return arr.length >= itemsToFetch;
+        });
+        if (enough) break;
+
+        sp.set('page_token', response.next_page_token);
+        const nextResponse = await this.alpacaClient.getMarketData<AlpacaBarsResponse>('v2/stocks/bars', sp);
+        response.bars = _.mergeWith(response.bars, nextResponse.bars, (objValue, srcValue) =>
+          objValue.concat(srcValue),
+        );
+      }
+
       return response;
     } catch (error) {
       this.logger.error('Failed to get candles from Alpaca', getErrorMessage(error));
