@@ -10,15 +10,14 @@ export const isUsMarketOpenNow = () => {
   return mins >= 13 * 60 + 30 && mins <= 20 * 60;
 };
 
-export const candleTTLSeconds = (timeframe?: string) => {
+export const getCandleTTL = (timeframe?: string) => {
   //   const open = isUsMarketOpenNow();
-  const tf = (timeframe || '').toLowerCase();
-  if (tf.includes('1T') || tf.includes('3T') || tf.includes('5T')) return open ? 60 : 600;
-  if (tf.includes('10T') || tf.includes('30T') || tf.includes('1H')) return open ? 300 : 1800;
-  if (tf.includes('1D') || tf.includes('day')) return 43200; // 12h
-  if (tf.includes('1W') || tf.includes('week')) return 604800; // 7d
-  if (tf.includes('1M') || tf.includes('month') || tf.includes('12M')) return 604800; // 7d
+  if (timeframe?.includes('1T') || timeframe?.includes('3T') || timeframe?.includes('5T')) return 60;
+  if (timeframe?.includes('10T') || timeframe?.includes('30T') || timeframe?.includes('1H')) return 300;
+  if (timeframe?.includes('1D') || timeframe?.includes('day')) return 43200; // 12h
+  if (timeframe?.includes('1W') || timeframe?.includes('week')) return 604800; // 7d
+  if (timeframe?.includes('1M') || timeframe?.includes('month') || timeframe?.includes('12M')) return 604800; // 7d
   return 300; // 기본
 };
 
-export const symbolTTLSeconds = () => 10;
+export const getSymbolTTL = () => 10;

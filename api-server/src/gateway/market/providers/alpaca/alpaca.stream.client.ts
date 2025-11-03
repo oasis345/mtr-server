@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Observable, Subject } from 'rxjs';
 import WebSocket from 'ws';
-import { AlpacaWebSocketStockTradeMessage } from '../../types/alpaca.stream.types';
+import { AlpacaWebSocketStockMessage } from '../../types/alpaca.stream.types';
 
 @Injectable()
 export class AlpacaStreamClient {
@@ -11,7 +11,7 @@ export class AlpacaStreamClient {
   private readonly apiKey: string;
   private readonly secretKey: string;
   private readonly url: string;
-  private readonly messageStream = new Subject<AlpacaWebSocketStockTradeMessage>();
+  private readonly messageStream = new Subject<AlpacaWebSocketStockMessage>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -54,7 +54,7 @@ export class AlpacaStreamClient {
     });
   }
 
-  getMessageStream(): Observable<AlpacaWebSocketStockTradeMessage> {
+  getMessageStream(): Observable<AlpacaWebSocketStockMessage> {
     return this.messageStream.asObservable();
   }
 

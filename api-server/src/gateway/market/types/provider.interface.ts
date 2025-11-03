@@ -1,5 +1,7 @@
-import { Asset, AssetType } from '@/common/types/asset.types';
+import { AssetType } from '@/common/types/asset.types';
 import { Observable } from 'rxjs';
+import { ChannelDataType, MarketStreamData } from './';
+import { ChartTimeframe } from '@/common/types';
 
 export enum MarketStreamProviders {
   ALPACA = 'ALPACA',
@@ -8,8 +10,7 @@ export enum MarketStreamProviders {
 
 export interface MarketStreamProvider {
   assetType: AssetType;
-  subscribe(symbols: string[]): void;
-  unsubscribe(symbols: string[]): void;
-  normalizeToAsset(data: any): Asset;
-  getDataStream(): Observable<Asset>;
+  subscribe(symbols: string[], dataTypes: ChannelDataType[], timeframe?: ChartTimeframe): void;
+  unsubscribe(symbols: string[], dataTypes: ChannelDataType[], timeframe?: ChartTimeframe): void;
+  getDataStream(): Observable<MarketStreamData>;
 }

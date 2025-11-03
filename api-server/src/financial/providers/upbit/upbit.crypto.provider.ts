@@ -1,16 +1,16 @@
 import { CustomHttpService } from '@/common/http/http.service';
-import { AssetType } from '@/common/types';
+import { AssetType, Candle, Trade } from '@/common/types';
 import { getErrorMessage } from '@/common/utils/error';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   AssetQueryParams,
-  Candle,
   CandleQueryParams,
   CandleResponse,
   Crypto,
   UpbitCandle,
   UpbitMarket,
   UpbitTicker,
+  UpbitTrade,
 } from '../../types';
 import { BaseFinancialProvider } from '../financial.provider';
 
@@ -35,15 +35,6 @@ export class UpbitCryptoProvider extends BaseFinancialProvider {
           assetType: AssetType.CRYPTO,
         };
       });
-  }
-
-  // ✅ 공통 티커 데이터 조회 메서드
-  private async getTickersData(): Promise<UpbitTicker[]> {
-    const markets: UpbitMarket[] = await this.httpService.get<UpbitMarket[]>(`${this.baseUrl}/market/all`);
-    const marketSymbols = markets.map(market => market.market).join(',');
-    const tickersData = await this.httpService.get<UpbitTicker[]>(`${this.baseUrl}/ticker?markets=${marketSymbols}`);
-
-    return tickersData;
   }
 
   async getTopTraded(params: AssetQueryParams): Promise<Crypto[]> {
@@ -94,7 +85,8 @@ export class UpbitCryptoProvider extends BaseFinancialProvider {
 
   async getCandles(params: CandleQueryParams): Promise<CandleResponse> {
     try {
-      const { symbols, timeframe } = params;
+      const { symbols, timeframe, start } = params;
+      const limit = 199; // Upbit API 제한으로 인해 최대 200개까지만 가능 + 무한 스크롤 구현을 위해 199로 설정
 
       if (symbols.length === 0) throw new Error('symbols are required');
       if (!timeframe) throw new Error('timeframe is required');
@@ -126,21 +118,74 @@ export class UpbitCryptoProvider extends BaseFinancialProvider {
 
       const apiUrl = resolver(timeframe);
       const candles = await this.httpService.get<UpbitCandle[]>(apiUrl, {
-        params: { market: `KRW-${symbol}`, to: end, count: params.limit },
+        params: { market: `KRW-${symbol}`, to: start ?? end, count: limit + 1 }, // 무한 스크롤 구현을 위해 count를 limit + 1로 설정
       });
+      const normalizedCandles = candles.map(candle => this.normalizeToCandle(candle));
+      let nextDateTime: string | null = null;
+      if (normalizedCandles.length > limit) {
+        // limit+1개가 왔으면 마지막 캔들의 시간을 nextDateTime으로 사용
+        const lastCandle = normalizedCandles[normalizedCandles.length - 1];
+        nextDateTime = lastCandle.timestamp;
 
-      return { candles: candles.map(candle => this.normalizeToCandle(candle)), nextDateTime: null };
+        // 실제 반환할 데이터는 limit개만 (마지막 하나 제외)
+        normalizedCandles.splice(-1, 1);
+      }
+      return {
+        candles: normalizedCandles,
+        nextDateTime,
+      };
     } catch (error) {
       this.logger.error(`Failed to get candles for Crypto Candles`, getErrorMessage(error));
       return { candles: [], nextDateTime: null };
     }
   }
 
+  async getTrades(params: AssetQueryParams): Promise<Trade[]> {
+    const { symbols } = params;
+    const [symbol] = symbols;
+    const response = await this.httpService.get<UpbitTrade[]>(`${this.baseUrl}/trades/ticks`, {
+      params: {
+        market: `KRW-${symbol}`,
+        count: 50,
+      },
+    });
+
+    const trades: Trade[] = response.map(trade => {
+      const changePercentage = trade.prev_closing_price
+        ? (trade.trade_price - trade.prev_closing_price) / trade.prev_closing_price
+        : 0; // 또는 null, 적절한 기본값
+
+      return {
+        id: trade.sequential_id.toString(),
+        timestamp: new Date(trade.timestamp).toISOString(),
+        price: trade.trade_price,
+        volume: trade.trade_volume,
+        change: trade.change_price,
+        changePercentage,
+        symbol: trade.market.replace('KRW-', ''),
+        assetType: AssetType.CRYPTO,
+        currency: 'KRW',
+        side: trade.ask_bid === 'ASK' ? 'sell' : 'buy',
+      };
+    });
+
+    return trades;
+  }
+
+  // ✅ 공통 티커 데이터 조회 메서드
+  private async getTickersData(): Promise<UpbitTicker[]> {
+    const markets: UpbitMarket[] = await this.httpService.get<UpbitMarket[]>(`${this.baseUrl}/market/all`);
+    const marketSymbols = markets.map(market => market.market).join(',');
+    const tickersData = await this.httpService.get<UpbitTicker[]>(`${this.baseUrl}/ticker?markets=${marketSymbols}`);
+
+    return tickersData;
+  }
+
   private normalizeToCrypto(data: UpbitTicker): Crypto {
     return {
       symbol: data.market.replace('KRW-', ''),
       price: data.trade_price,
-      change: data.signed_change_price,
+      change: data.change_price,
       changePercentage: data.signed_change_rate,
       volume: data.acc_trade_volume_24h,
       currency: 'KRW',
@@ -155,9 +200,11 @@ export class UpbitCryptoProvider extends BaseFinancialProvider {
       high: data.high_price,
       low: data.low_price,
       close: data.trade_price,
-      timestamp: new Date(data.timestamp).toISOString(),
+      timestamp: data.candle_date_time_utc,
       volume: data.candle_acc_trade_volume,
       tradeCount: data.candle_acc_trade_price,
+      change: data.change_price,
+      changePercentage: data.change_rate,
       assetType: AssetType.CRYPTO,
       currency: 'KRW',
     };

@@ -81,4 +81,15 @@ export class FinancialController {
   async getCandles(@Query() query: CandleQueryParams) {
     return await this.financialService.getCandles(query);
   }
+
+  @ApiOperation({ summary: '거래 데이터 조회' })
+  @ApiQuery({
+    name: 'symbols',
+    required: true,
+    description: '거래를 조회할 종목 심볼',
+  })
+  @Get('trades')
+  async getTrades(@Query() query: AssetQueryParams) {
+    return await this.financialService.getTrades(query);
+  }
 }

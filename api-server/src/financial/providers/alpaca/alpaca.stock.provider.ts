@@ -1,4 +1,4 @@
-import { Asset, AssetType } from '@/common/types/asset.types';
+import { Asset, AssetType, Candle, Trade } from '@/common/types/asset.types';
 import { getErrorMessage } from '@/common/utils/error';
 import type {
   AlpacaAsset,
@@ -10,7 +10,7 @@ import type {
   AlpacaSnapshot,
   AlpacaSnapshotsResponse,
 } from '@/financial/types/alpaca.types';
-import { AssetQueryParams, Candle, CandleQueryParams, CandleResponse } from '@/financial/types/common.types';
+import { AssetQueryParams, CandleQueryParams, CandleResponse } from '@/financial/types/common.types';
 import type { Stock } from '@/financial/types/stock.types';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as _ from 'lodash';
@@ -19,14 +19,19 @@ import { AlpacaClient } from './alpaca.client';
 
 @Injectable()
 export class AlpacaStockProvider extends BaseFinancialProvider {
-  getTopTraded(params: AssetQueryParams): Promise<Asset[]> {
-    throw new Error('Method not implemented.');
-  }
   assetType = AssetType.STOCK;
   private readonly logger = new Logger(AlpacaStockProvider.name);
 
   constructor(private readonly alpacaClient: AlpacaClient) {
     super();
+  }
+
+  getTrades(params: AssetQueryParams): Promise<Trade[]> {
+    throw new Error('Method not implemented.');
+  }
+
+  getTopTraded(params: AssetQueryParams): Promise<Asset[]> {
+    throw new Error('Method not implemented.');
   }
 
   async getAssets(params: AssetQueryParams): Promise<Asset[]> {
@@ -105,6 +110,69 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
     }
   }
 
+  async getTopGainers(params: AssetQueryParams): Promise<Stock[]> {
+    const response = await this._getMovers(params);
+    return response.gainers.map(item => this.normalizeToMoverToStock(item));
+  }
+
+  async getTopLosers(params: AssetQueryParams): Promise<Stock[]> {
+    const response = await this._getMovers(params);
+    return response.losers.map(item => this.normalizeToMoverToStock(item));
+  }
+
+  async getCandles(params: CandleQueryParams): Promise<CandleResponse> {
+    const response = await this._getCandles(params);
+    const barsBySymbol = response?.bars ?? {};
+    const [symbol] = params.symbols;
+
+    const raw = barsBySymbol[symbol];
+    const list = !raw ? [] : Array.isArray(raw) ? raw : [raw];
+
+    const candles = list.map(bar => this.normalizeToCandle(symbol, bar));
+    candles.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const withChange = this.addChangePercentage(candles);
+
+    const limit = params.limit ?? 100;
+    const data = withChange.slice(0, limit);
+
+    // limit+1개보다 적은 데이터를 반환했다면, 더 이상 과거 데이터가 없다는 뜻이므로 nextDateTime은 null이 됩니다.
+    const nextDateTime =
+      withChange.length > limit && data.length
+        ? new Date(new Date(data[data.length - 1].timestamp).getTime() - 1).toISOString()
+        : null;
+
+    return { candles: data, nextDateTime };
+  }
+
+  normalizeToCandle(symbol: string, data: AlpacaBar): Candle {
+    return {
+      symbol,
+      open: data.o,
+      high: data.h,
+      low: data.l,
+      close: data.c,
+      volume: data.v,
+      timestamp: data.t,
+      tradeCount: data.n,
+      vwap: data.vw,
+      assetType: AssetType.STOCK,
+      currency: 'USD',
+    };
+  }
+
+  normalizeToMoverToStock(data: AlpacaMover): Stock {
+    const mover = data;
+    return {
+      assetType: AssetType.STOCK,
+      symbol: mover.symbol,
+      price: mover.price,
+      change: mover.change,
+      changePercentage: mover.percent_change / 100,
+      currency: 'USD',
+    };
+  }
+
   private async _getMovers(params: AssetQueryParams): Promise<AlpacaMoversResponse> {
     const searchParams = new URLSearchParams({
       top: String(params.limit),
@@ -119,16 +187,6 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
       this.logger.error('Failed to get movers data from Alpaca', getErrorMessage(error));
       return { gainers: [], losers: [] };
     }
-  }
-
-  async getTopGainers(params: AssetQueryParams): Promise<Stock[]> {
-    const response = await this._getMovers(params);
-    return response.gainers.map(item => this.normalizeToMoverToStock(item));
-  }
-
-  async getTopLosers(params: AssetQueryParams): Promise<Stock[]> {
-    const response = await this._getMovers(params);
-    return response.losers.map(item => this.normalizeToMoverToStock(item));
   }
 
   private getPeriodMs(timeframe: string): number {
@@ -162,6 +220,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
     const limit = params.limit ?? 100;
     const itemsToFetch = limit + 1;
     sp.set('limit', itemsToFetch.toString());
+    sp.set('feed', 'iex');
 
     // --- ❗️ 핵심 수정: 동적 슬라이딩 윈도우 로직 적용 ---
     let effectiveEnd: string;
@@ -213,70 +272,16 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
     } catch (error) {
       this.logger.error('Failed to get candles from Alpaca', getErrorMessage(error));
       this.logger.debug(`Alpaca request on error: ${sp.toString()}`);
-      return { bars: {}, next_page_token: null };
+      throw new BadRequestException('failed to get candles from Alpaca');
     }
-  }
-
-  async getCandles(params: CandleQueryParams): Promise<CandleResponse> {
-    const response = await this._getCandles(params);
-    const barsBySymbol = response?.bars ?? {};
-    const [symbol] = params.symbols;
-
-    const raw = barsBySymbol[symbol];
-    const list = !raw ? [] : Array.isArray(raw) ? raw : [raw];
-
-    const candles = list.map(bar => this.normalizeToCandle(symbol, bar));
-    candles.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    const withChange = this.addChangePercentage(candles);
-
-    const limit = params.limit ?? 100;
-    const data = withChange.slice(0, limit);
-
-    // limit+1개보다 적은 데이터를 반환했다면, 더 이상 과거 데이터가 없다는 뜻이므로 nextDateTime은 null이 됩니다.
-    const nextDateTime =
-      withChange.length > limit && data.length
-        ? new Date(new Date(data[data.length - 1].timestamp).getTime() - 1).toISOString()
-        : null;
-
-    return { candles: data, nextDateTime };
   }
 
   private addChangePercentage(candles: Candle[]): Candle[] {
     return candles.map((c, i, arr) => {
       const prev = arr[i + 1]; // 직전(하루 전) 캔들
-      const pct = prev?.close ? (c.close - prev.close) / prev.close : null;
-      // `Candle` 타입과 일치시키기 위해 'changesPercentage' -> 'changePercentage'로 변경
+      const pct = prev?.close ? (c.close - prev.close) / prev.close : (c.close - c.open) / c.open; // 캔들이 하루 이상 차이나면 전일 종가로 계산 마지막 캔들은 시가 종가로 계산
       return { ...c, changePercentage: pct };
     });
-  }
-
-  normalizeToCandle(symbol: string, data: AlpacaBar): Candle {
-    return {
-      symbol,
-      open: data.o,
-      high: data.h,
-      low: data.l,
-      close: data.c,
-      volume: data.v,
-      timestamp: data.t,
-      tradeCount: data.n,
-      vwap: data.vw,
-      assetType: AssetType.STOCK,
-      currency: 'USD',
-    };
-  }
-
-  normalizeToMoverToStock(data: AlpacaMover): Stock {
-    const mover = data;
-    return {
-      assetType: AssetType.STOCK,
-      symbol: mover.symbol,
-      price: mover.price,
-      change: mover.change,
-      changePercentage: mover.percent_change / 100,
-      currency: 'USD',
-    };
   }
 
   private normalizeSnapshotToStock(symbol: string, snapshot: AlpacaSnapshot): Stock {

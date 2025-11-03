@@ -9,3 +9,17 @@ export interface AlpacaWebSocketStockTradeMessage {
   t: string; // RFC-3339 formatted timestamp with nanosecond precision
   z: string; // tape
 }
+
+export interface AlpacaWebSocketStockQuoteMessage {
+  T: string; // message type, always “q”
+  S: string; // symbol
+  bx: number; // bid exchange code
+  bp: number; // bid price
+  bs: number; // bid size
+  ax: number; // ask exchange code
+  ap: number; // ask price
+  as: number; // ask size
+  t: string; // RFC-3339 formatted timestamp with nanosecond precision
+}
+
+export type AlpacaWebSocketStockMessage = AlpacaWebSocketStockTradeMessage | AlpacaWebSocketStockQuoteMessage;

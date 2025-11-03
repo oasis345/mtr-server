@@ -16,7 +16,8 @@ export class AppCacheService {
   }
 
   async set<T>(key: string, value: T, ttl?: number, source?: string): Promise<void> {
-    if (ttl && ttl > 0) await this.cache.set(key, value, ttl);
+    // @ts-ignore
+    if (ttl && ttl > 0) await this.cache.set(key, value, { ttl: ttl });
     else await this.cache.set(key, value);
     this.logger.debug(`SET key=${key} ttl=${ttl ?? 0}s${source ? ` source=${source}` : ''}`);
   }

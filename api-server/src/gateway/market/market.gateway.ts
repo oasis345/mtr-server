@@ -1,3 +1,4 @@
+import { UsePipes, ValidationPipe } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -11,6 +12,12 @@ import { Server, Socket } from 'socket.io';
 import { MarketSubscription } from './dto/market.subscription.dto';
 import { MarketSubscriptionService } from './market.subsciption.service';
 
+@UsePipes(
+  new ValidationPipe({
+    transform: true, // 변환 옵션을 반드시 true로 설정합니다.
+    whitelist: true,
+  }),
+)
 @WebSocketGateway({
   namespace: '/market',
   cors: { origin: '*' },

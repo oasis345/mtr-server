@@ -1,4 +1,4 @@
-export interface UpbitWebSocketTickerMessage {
+export type UpbitTickerMessage = {
   type: string;
   code: string;
   opening_price: number;
@@ -32,4 +32,42 @@ export interface UpbitWebSocketTickerMessage {
   acc_trade_price_24h: number;
   acc_trade_volume_24h: number;
   stream_type: string;
-}
+};
+
+export type UpbitTradeMessage = {
+  type: string;
+  code: string;
+  timestamp: number;
+  trade_date: string;
+  trade_time: string;
+  trade_timestamp: number;
+  trade_price: number;
+  trade_volume: number;
+  ask_bid: string;
+  prev_closing_price: number;
+  change: string;
+  change_price: number;
+  sequential_id: number;
+  best_ask_price: number;
+  best_ask_size: number;
+  best_bid_price: number;
+  best_bid_size: number;
+  stream_type: string;
+};
+
+export type UpbitCandleMessage = {
+  type: string;
+  code: string;
+  candle_date_time_utc: string;
+  candle_date_time_kst: string;
+  opening_price: number;
+  high_price: number;
+  low_price: number;
+  trade_price: number;
+  candle_acc_trade_price: number;
+  candle_acc_trade_volume: number;
+  timestamp: number;
+  stream_type: string;
+};
+
+export type UpbitWebSocketMessage = UpbitTickerMessage | UpbitTradeMessage | UpbitCandleMessage;

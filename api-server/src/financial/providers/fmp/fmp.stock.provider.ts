@@ -1,4 +1,4 @@
-import { Asset, AssetType } from '@/common/types/asset.types';
+import { Asset, AssetType, Trade } from '@/common/types/asset.types';
 import {
   AssetQueryParams,
   CandleQueryParams,
@@ -25,17 +25,23 @@ type FmpRawStockData = {
 
 @Injectable()
 export class FmpStockProvider extends BaseFinancialProvider {
-  getCandles(params: CandleQueryParams): Promise<CandleResponse> {
-    throw new Error('Method not implemented.');
-  }
   assetType = AssetType.STOCK;
-  getSnapshots(params: AssetQueryParams): Promise<Asset[]> {
-    throw new Error('Method not implemented.');
-  }
   private readonly logger = new Logger(FmpStockProvider.name);
 
   constructor(private readonly fmpClient: FmpClient) {
     super();
+  }
+
+  getTrades(params: AssetQueryParams): Promise<Trade[]> {
+    throw new Error('Method not implemented.');
+  }
+
+  getCandles(params: CandleQueryParams): Promise<CandleResponse> {
+    throw new Error('Method not implemented.');
+  }
+
+  getSnapshots(params: AssetQueryParams): Promise<Asset[]> {
+    throw new Error('Method not implemented.');
   }
 
   normalizeToAsset(rawData: FmpRawStockData): Stock {

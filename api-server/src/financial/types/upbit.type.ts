@@ -51,11 +51,13 @@ export interface UpbitTrade {
   trade_date_utc: string;
   trade_time_utc: string;
   timestamp: number;
+  trade_timestamp: number;
   trade_price: number;
   trade_volume: number;
   prev_closing_price: number;
   change_price: number;
   ask_bid: string; // "ASK" | "BID"
+  sequential_id: number;
 }
 
 // GET /v1/candles/minutes/{unit}
@@ -74,6 +76,9 @@ export interface UpbitCandle {
   candle_date_time_kst: string;
   candle_date_time_utc: string;
   first_day_of_period: string;
+  change_price: number;
+  change_rate: number;
+  prev_closing_price: number;
 }
 
 // GET /v1/market/all

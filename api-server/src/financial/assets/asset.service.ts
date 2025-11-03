@@ -1,6 +1,6 @@
 import { Cacheable } from '@/cache/cache.decorator';
 import { AppCacheService } from '@/cache/cache.service';
-import { Asset, AssetType } from '@/common/types';
+import { Asset, AssetType, Trade } from '@/common/types';
 import { Logger } from '@nestjs/common';
 import { buildMarketCacheKey } from '../cache/buildMarketCacheKey';
 import { AssetServiceConfig } from '../config/assetConfig';
@@ -17,10 +17,6 @@ export abstract class AssetService {
     protected readonly cacheService: AppCacheService,
     protected readonly config: AssetServiceConfig,
   ) {}
-
-  protected async afterCallProviderMethod(assets: Asset[], dataType: MarketDataType): Promise<Asset[]> {
-    return Promise.resolve(assets);
-  }
 
   async refreshCache(dataType: MarketDataType, limit?: number): Promise<void> {
     const actualLimit = limit ?? this.config.defaultLimits.get(dataType);
@@ -88,12 +84,30 @@ export abstract class AssetService {
     }
   }
 
+  @Cacheable<[AssetQueryParams], AssetService>({
+    key: ({ args: [params], instance }) => buildMarketCacheKey(params),
+    ttl: ({ instance, args: [params] }) =>
+      instance.getTtl(instance.config.cacheableDataTypeMap.get(MarketDataType.TRADES), {
+        ...params,
+        dataType: MarketDataType.TRADES,
+      }),
+  })
+  async getTrades(params: AssetQueryParams): Promise<Trade[]> {
+    try {
+      const response = await this.registry.call<Trade[]>(this.assetType, MarketDataType.TRADES, params);
+      return response;
+    } catch (error) {
+      this.logger.error(`Failed to get trades for ${this.assetType}: ${params.symbols?.join(',')}`);
+      throw error;
+    }
+  }
+
+  protected async afterCallProviderMethod(assets: Asset[], dataType: MarketDataType): Promise<Asset[]> {
+    return Promise.resolve(assets);
+  }
+
   protected getTtl = (cfg: CacheConfig | undefined, params: AssetQueryParams) =>
     typeof cfg?.ttl === 'function' ? cfg.ttl(params) : (cfg?.ttl ?? 0);
-
-  getDefaultLimit(dataType: MarketDataType): number | undefined {
-    return this.config.defaultLimits.get(dataType);
-  }
 
   protected async enrichName(assets: Asset[]): Promise<Asset[]> {
     const assetsKey = buildMarketCacheKey({ assetType: this.assetType, dataType: MarketDataType.ASSETS });

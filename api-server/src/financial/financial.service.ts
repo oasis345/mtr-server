@@ -1,4 +1,4 @@
-import { Asset, AssetType } from '@/common/types/asset.types';
+import { Asset, AssetType, Trade } from '@/common/types/asset.types';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AssetService } from './assets/asset.service';
 import { CryptoService } from './assets/crypto/crypto.service';
@@ -17,15 +17,6 @@ export class FinancialService {
     this.serviceMap.set(AssetType.CRYPTO, this.cryptoService);
   }
 
-  private prepareService({ assetType }: AssetQueryParams) {
-    const service = this.serviceMap.get(assetType);
-    if (!service) {
-      throw new BadRequestException(`Unsupported asset type: "${assetType}"`);
-    }
-
-    return service;
-  }
-
   prepareParams(params: AssetQueryParams): AssetQueryParams {
     const symbols = this.normalizeSymbols(params.symbols);
     return { ...params, symbols };
@@ -39,6 +30,20 @@ export class FinancialService {
   async getCandles(params: CandleQueryParams): Promise<CandleResponse> {
     const service = this.prepareService(params);
     return await service.getCandles(params);
+  }
+
+  async getTrades(params: AssetQueryParams): Promise<Trade[]> {
+    const service = this.prepareService(params);
+    return await service.getTrades(params);
+  }
+
+  private prepareService({ assetType }: AssetQueryParams) {
+    const service = this.serviceMap.get(assetType);
+    if (!service) {
+      throw new BadRequestException(`Unsupported asset type: "${assetType}"`);
+    }
+
+    return service;
   }
 
   private normalizeSymbols(input?: string | string[]): string[] {

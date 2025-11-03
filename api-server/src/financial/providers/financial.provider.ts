@@ -1,4 +1,4 @@
-import { Asset, AssetType } from '@/common/types';
+import { Asset, AssetType, Trade } from '@/common/types';
 import type { AssetQueryParams, CandleQueryParams, CandleResponse } from '../types';
 
 export const FINANCIAL_PROVIDERS = 'FINANCIAL_PROVIDERS';
@@ -20,6 +20,8 @@ export interface FinancialProvider {
   // 캔들 조회
   // getCandle(params: AssetQueryParams): Promise<Candle[]>;
   getCandles(params: CandleQueryParams): Promise<CandleResponse>;
+  // 거래 조회
+  getTrades(params: AssetQueryParams): Promise<Trade[]>;
 }
 
 export abstract class BaseFinancialProvider implements FinancialProvider {
@@ -33,12 +35,11 @@ export abstract class BaseFinancialProvider implements FinancialProvider {
   abstract getTopLosers(params: AssetQueryParams): Promise<Asset[]>;
   // abstract getCandle(params: AssetQueryParams): Promise<Candle[]>;
   abstract getCandles(params: CandleQueryParams): Promise<CandleResponse>;
+  abstract getTrades(params: AssetQueryParams): Promise<Trade[]>;
 
   protected getDefaultTimeRange(timeframe: string) {
-    const now = new Date();
-    // 현재 시간(15분 지연)을 기준으로 end 설정 무료 버전
-    const end = new Date(now.getTime() - 15 * 60 * 1000);
-
+    // const end = new Date(now.getTime() - 15 * 60 * 1000);
+    const end = new Date();
     let daysBack: number;
 
     // timeframe별 기본 기간 (무료 계정 고려)
