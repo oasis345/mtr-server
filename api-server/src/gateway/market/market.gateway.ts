@@ -45,20 +45,24 @@ export class MarketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('subscribe-market')
   async handleSubscription(@ConnectedSocket() client: Socket, @MessageBody() body: MarketSubscription): Promise<any> {
     const { payload } = body;
-    const channel = await this.subscriptionService.subscribe(client.id, payload);
+    const channels = await this.subscriptionService.subscribe(client.id, payload);
 
-    await client.join(channel);
-    console.log(`Client ${client.id} joined channel: ${channel}`);
-    return { event: 'subscribed', channel };
+    for (const channel of channels) {
+      await client.join(channel);
+      console.log(`Client ${client.id} joined channel: ${channel}`);
+      return { event: 'subscribed', channel };
+    }
   }
 
   @SubscribeMessage('unsubscribe-market')
   async handleUnsubscription(@ConnectedSocket() client: Socket, @MessageBody() body: MarketSubscription): Promise<any> {
     const { payload } = body;
-    const channel = this.subscriptionService.unsubscribe(client.id, payload);
+    const channels = this.subscriptionService.unsubscribe(client.id, payload);
 
-    await client.leave(channel);
-    console.log(`Client ${client.id} left channel: ${channel}`);
-    return { event: 'unsubscribed', channel };
+    for (const channel of channels) {
+      await client.leave(channel);
+      console.log(`Client ${client.id} left channel: ${channel}`);
+      return { event: 'unsubscribed', channel };
+    }
   }
 }

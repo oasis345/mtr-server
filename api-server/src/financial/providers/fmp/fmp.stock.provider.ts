@@ -25,6 +25,7 @@ type FmpRawStockData = {
 
 @Injectable()
 export class FmpStockProvider extends BaseFinancialProvider {
+  id = 'fmp';
   assetType = AssetType.STOCK;
   private readonly logger = new Logger(FmpStockProvider.name);
 

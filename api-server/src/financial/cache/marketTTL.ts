@@ -1,4 +1,6 @@
 // src/financial/cache/candle-ttl.ts
+import { ChartTimeframe } from '@/common/types';
+
 export const isUsMarketOpenNow = () => {
   const now = new Date();
   const day = now.getUTCDay(); // 0=Sun
@@ -10,7 +12,7 @@ export const isUsMarketOpenNow = () => {
   return mins >= 13 * 60 + 30 && mins <= 20 * 60;
 };
 
-export const getCandleTTL = (timeframe?: string) => {
+export const getCandleTTL = (timeframe?: ChartTimeframe) => {
   //   const open = isUsMarketOpenNow();
   if (timeframe?.includes('1T') || timeframe?.includes('3T') || timeframe?.includes('5T')) return 60;
   if (timeframe?.includes('10T') || timeframe?.includes('30T') || timeframe?.includes('1H')) return 300;

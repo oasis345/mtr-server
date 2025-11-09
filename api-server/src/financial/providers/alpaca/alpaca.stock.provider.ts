@@ -19,6 +19,7 @@ import { AlpacaClient } from './alpaca.client';
 
 @Injectable()
 export class AlpacaStockProvider extends BaseFinancialProvider {
+  id = 'alpaca';
   assetType = AssetType.STOCK;
   private readonly logger = new Logger(AlpacaStockProvider.name);
 

@@ -4,38 +4,39 @@ import type { AssetQueryParams, CandleQueryParams, CandleResponse } from '../typ
 export const FINANCIAL_PROVIDERS = 'FINANCIAL_PROVIDERS';
 
 export interface FinancialProvider {
+  // 고유 키
+  id: string;
+  // 자산 타입
   assetType: AssetType;
   // 자산 조회
-  getAssets(params: AssetQueryParams): Promise<Asset[]>;
+  getAssets?(params: AssetQueryParams): Promise<Asset[]>;
   // 종목 스냅샷 조회
-  getSnapshots(params: AssetQueryParams): Promise<Asset[]>;
+  getSnapshots?(params: AssetQueryParams): Promise<Asset[]>;
   // 거래 대금 상위 종목
-  getTopTraded(params: AssetQueryParams): Promise<Asset[]>;
+  getTopTraded?(params: AssetQueryParams): Promise<Asset[]>;
   // 가장 활발한 종목
-  getMostActive(params: AssetQueryParams): Promise<Asset[]>;
+  getMostActive?(params: AssetQueryParams): Promise<Asset[]>;
   //상승 종목
-  getTopGainers(params: AssetQueryParams): Promise<Asset[]>;
+  getTopGainers?(params: AssetQueryParams): Promise<Asset[]>;
   //하락 종목
-  getTopLosers(params: AssetQueryParams): Promise<Asset[]>;
+  getTopLosers?(params: AssetQueryParams): Promise<Asset[]>;
   // 캔들 조회
-  // getCandle(params: AssetQueryParams): Promise<Candle[]>;
-  getCandles(params: CandleQueryParams): Promise<CandleResponse>;
+  getCandles?(params: CandleQueryParams): Promise<CandleResponse>;
   // 거래 조회
-  getTrades(params: AssetQueryParams): Promise<Trade[]>;
+  getTrades?(params: AssetQueryParams): Promise<Trade[]>;
 }
 
 export abstract class BaseFinancialProvider implements FinancialProvider {
+  abstract id: string;
   abstract assetType: AssetType;
-  // abstract normalizeToAsset(data: any): Asset;
-  abstract getAssets(params: AssetQueryParams): Promise<Asset[]>;
-  abstract getSnapshots(params: AssetQueryParams): Promise<Asset[]>;
-  abstract getTopTraded(params: AssetQueryParams): Promise<Asset[]>;
-  abstract getMostActive(params: AssetQueryParams): Promise<Asset[]>;
-  abstract getTopGainers(params: AssetQueryParams): Promise<Asset[]>;
-  abstract getTopLosers(params: AssetQueryParams): Promise<Asset[]>;
-  // abstract getCandle(params: AssetQueryParams): Promise<Candle[]>;
-  abstract getCandles(params: CandleQueryParams): Promise<CandleResponse>;
-  abstract getTrades(params: AssetQueryParams): Promise<Trade[]>;
+  getAssets?(params: AssetQueryParams): Promise<Asset[]>;
+  getSnapshots?(params: AssetQueryParams): Promise<Asset[]>;
+  getTopTraded?(params: AssetQueryParams): Promise<Asset[]>;
+  getMostActive?(params: AssetQueryParams): Promise<Asset[]>;
+  getTopGainers?(params: AssetQueryParams): Promise<Asset[]>;
+  getTopLosers?(params: AssetQueryParams): Promise<Asset[]>;
+  getCandles?(params: CandleQueryParams): Promise<CandleResponse>;
+  getTrades?(params: AssetQueryParams): Promise<Trade[]>;
 
   protected getDefaultTimeRange(timeframe: string) {
     // const end = new Date(now.getTime() - 15 * 60 * 1000);

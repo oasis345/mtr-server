@@ -16,6 +16,7 @@ import { BaseFinancialProvider } from '../financial.provider';
 
 @Injectable()
 export class UpbitCryptoProvider extends BaseFinancialProvider {
+  id = 'upbit';
   assetType = AssetType.CRYPTO;
   private readonly baseUrl = 'https://api.upbit.com/v1';
   private readonly logger = new Logger(UpbitCryptoProvider.name);
@@ -157,7 +158,7 @@ export class UpbitCryptoProvider extends BaseFinancialProvider {
 
       return {
         id: trade.sequential_id.toString(),
-        timestamp: new Date(trade.timestamp).toISOString(),
+        timestamp: trade.timestamp,
         price: trade.trade_price,
         volume: trade.trade_volume,
         change: trade.change_price,

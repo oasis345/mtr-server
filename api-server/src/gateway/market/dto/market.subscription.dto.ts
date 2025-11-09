@@ -5,7 +5,7 @@ import {
   IsArray,
   IsEnum,
   IsNotEmptyObject,
-  IsString,
+  IsOptional,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
@@ -18,30 +18,26 @@ export class MarketPayload {
   @IsEnum(MarketChannel)
   channel: MarketChannel;
 
-  @IsArray()
-  @IsEnum(ChannelDataType, { each: true })
-  @ArrayNotEmpty()
-  dataTypes?: ChannelDataType[];
-
   // 구독 대상이 `stock` 인지 `crypto` 인지 명시합니다. (기존 asset -> assetType으로 명칭 통일)
   @IsEnum(AssetType)
   assetType: AssetType;
 
-  // USER_SYMBOLS일 때: 사용자가 구독할 종목들
-  @ValidateIf(o => o.channel === MarketChannel.USER_SYMBOLS)
+  @IsArray()
+  @IsEnum(ChannelDataType, { each: true })
+  @ArrayNotEmpty()
+  @IsOptional()
+  dataTypes?: ChannelDataType[];
+
+  // 거래소가 있는 경우 CompositeKey로 get. ex NASDAQ:AAPL, UPBIT:KRW-BTC
+  @ValidateIf(o => o.channel === MarketChannel.SYMBOLS)
+  @Transform(({ value }) => value?.map(val => val.toUpperCase()))
   @IsArray()
   @ArrayNotEmpty()
-  @Transform(({ value }) => value?.map((s: string) => s.toUpperCase()))
-  @IsString({ each: true })
-  userSymbols?: string[];
-
-  // SYMBOL일 때: 클릭한 단일 종목
-  @ValidateIf(o => o.channel === MarketChannel.SYMBOL)
-  @Transform(({ value }) => value?.toUpperCase())
-  @IsString()
-  symbol?: string;
+  @IsOptional()
+  symbols?: string[];
 
   @ValidateIf(o => o.dataTypes?.includes(ChannelDataType.CANDLE)) // CANDLE 데이터 타입일 때만 유효성 검사
+  @IsOptional()
   timeframe?: ChartTimeframe;
 }
 

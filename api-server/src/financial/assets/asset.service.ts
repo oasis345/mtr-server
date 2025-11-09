@@ -112,6 +112,8 @@ export abstract class AssetService {
   protected async enrichName(assets: Asset[]): Promise<Asset[]> {
     const assetsKey = buildMarketCacheKey({ assetType: this.assetType, dataType: MarketDataType.ASSETS });
     const baseAssets = await this.cacheService.get<Asset[]>(assetsKey);
+    if (!baseAssets) return assets;
+
     const nameMap = new Map<string, string>();
     baseAssets?.forEach(a => {
       if (a.name && a.name !== a.symbol) nameMap.set(a.symbol, a.name);
@@ -120,6 +122,7 @@ export abstract class AssetService {
     const withName = assets.map(a => ({
       ...a,
       name: nameMap.get(a.symbol) || a.name || a.symbol,
+      exchange: baseAssets?.find(b => b.symbol === a.symbol)?.exchange,
     }));
 
     return withName;

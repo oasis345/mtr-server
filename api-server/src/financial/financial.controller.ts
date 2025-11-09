@@ -3,7 +3,7 @@ import { AssetType } from '@/common/types/asset.types';
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { FinancialService } from './financial.service';
-import { AssetQueryParams, CandleQueryParams, MarketDataType } from './types';
+import { AssetQueryParams, CandleQueryParams, EnableExchangeStockCountry, MarketDataType } from './types';
 
 @ApiTags('Financial')
 @Controller('financial')
@@ -91,5 +91,54 @@ export class FinancialController {
   @Get('trades')
   async getTrades(@Query() query: AssetQueryParams) {
     return await this.financialService.getTrades(query);
+  }
+
+  @ApiOperation({ summary: '주식 시장 상태 조회' })
+  @ApiQuery({
+    name: 'country',
+    required: true,
+  })
+  @ApiOkResponse({
+    description: '주식 시장 상태 조회 성공',
+    schema: {
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: { type: 'string', example: '정상적으로 처리되었습니다.' },
+        data: {
+          type: 'object',
+          properties: {
+            status: { type: 'string', example: 'REGULAR' },
+          },
+        },
+      },
+    },
+  })
+  @Get('stock-market-status')
+  getStockMarketStatus(@Query('country') country: EnableExchangeStockCountry) {
+    return this.financialService.getStockMarketStatus(country);
+  }
+
+  @ApiOperation({ summary: '환율 조회' })
+  @ApiOkResponse({
+    description: '환율 조회 성공',
+    schema: {
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: { type: 'string', example: '정상적으로 처리되었습니다.' },
+        data: {
+          type: 'object',
+          properties: {
+            USD: { type: 'number', example: 1 },
+            KRW: { type: 'number', example: 1300 },
+          },
+          example: { USD: 1, KRW: 1300 }, // 객체 형태의 예시
+          description: '각 통화에 대한 현재 환율 정보를 나타냅니다.',
+        },
+      },
+    },
+  })
+  @Get('exchange-rate')
+  async getExchangeRate() {
+    return await this.financialService.getExchangeRate();
   }
 }

@@ -14,6 +14,7 @@ import { FINANCIAL_PROVIDERS, FinancialProvider } from './providers/financial.pr
 import { ProviderRegistry } from './providers/provider.registry';
 import { UpbitCryptoProvider } from './providers/upbit/upbit.crypto.provider';
 import { LogoService } from './services/logo.service';
+import { KisStockProvider } from './providers/koreaInvestment/kis.stock.provider';
 
 @Module({
   imports: [CustomHttpModule, ConfigModule],
@@ -22,15 +23,20 @@ import { LogoService } from './services/logo.service';
     FinancialService,
     AlpacaStockProvider,
     UpbitCryptoProvider,
+    KisStockProvider,
     LogoService,
     AlpacaClient,
     { provide: STOCK_ASSET_CONFIG.name, useValue: STOCK_ASSET_CONFIG },
     { provide: CRYPTO_ASSET_CONFIG.name, useValue: CRYPTO_ASSET_CONFIG },
     {
       provide: FINANCIAL_PROVIDERS,
-      useFactory: (alpaca: AlpacaStockProvider, upbit: UpbitCryptoProvider): FinancialProvider[] => [alpaca, upbit],
+      useFactory: (
+        alpaca: AlpacaStockProvider,
+        upbit: UpbitCryptoProvider,
+        kis: KisStockProvider,
+      ): FinancialProvider[] => [alpaca, upbit, kis],
 
-      inject: [AlpacaStockProvider, UpbitCryptoProvider],
+      inject: [AlpacaStockProvider, UpbitCryptoProvider, KisStockProvider],
     },
     {
       provide: ProviderRegistry,

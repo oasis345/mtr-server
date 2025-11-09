@@ -1,98 +1,120 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 🐒 MonkeyTraders - API 서버
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+최신 기술 스택으로 구축된 **고성능 실시간 금융 데이터 API 서버**입니다.  
+이 프로젝트는 MonkeyTraders 플랫폼의 백엔드 시스템으로,  
+복잡한 금융 데이터를 안정적으로 수집·처리하고 **클라이언트에게 실시간 제공**하는 것을 목표로 합니다.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+NestJS의 강력한 **모듈 시스템**과 **클린 아키텍처 원칙**을 기반으로 설계되어,  
+여러 외부 금융 API를 **유연하게 통합**하고 **확장 가능한 구조**를 갖추고 있습니다.
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 주요 기능 (Key Features)
 
-## Project setup
+- 📈 **실시간 데이터 스트리밍**  
+  WebSocket을 통해 클라이언트와 양방향 통신 채널을 구축하고,  
+  주식 및 암호화폐의 **시세·체결 내역 등 실시간 데이터**를 스트리밍합니다.
 
-```bash
-$ npm install
-```
+- 🏛️ **다중 데이터 소스 통합**  
+  Alpaca(주식), Upbit(암호화폐) 등 여러 외부 금융 API를 동시에 지원합니다.  
+  **Provider 추상화 패턴**을 적용하여 새로운 데이터 소스를 최소한의 코드로 손쉽게 추가할 수 있습니다.
 
-## Compile and run the project
+- 🔐 **JWT 기반 인증 시스템**  
+  Passport.js와 JWT(JSON Web Token)를 사용하여 **안전하고 Stateless한 인증·인가 시스템**을 구현했습니다.
 
-```bash
-# development
-$ npm run start
+- ⚡ **고성능 캐싱 전략**  
+  Redis 기반의 전역 캐시 레이어를 구축하여 **API 요청 부하를 최소화**하고,  
+  **응답 속도를 극대화**했습니다.
 
-# watch mode
-$ npm run start:dev
+- 🔩 **강력한 유효성 검사**  
+  DTO(Data Transfer Object)와 `class-validator`를 활용하여  
+  모든 요청의 입력값을 명확하게 정의하고, **자동 유효성 검증**을 수행합니다.
 
-# production mode
-$ npm run start:prod
-```
+- 🗃️ **Prisma 기반 데이터베이스 관리**  
+  Prisma ORM을 통해 **타입 안전(type-safe)**한 데이터 모델 관리 및 자동 마이그레이션을 지원합니다.
 
-## Run tests
+---
 
-```bash
-# unit tests
-$ npm run test
+## 🛠️ 기술 스택 (Tech Stack)
 
-# e2e tests
-$ npm run test:e2e
+| 구분              | 기술                               |
+| ----------------- | ---------------------------------- |
+| **Core**          | NestJS, TypeScript, RxJS           |
+| **실시간 통신**   | WebSocket (Socket.IO)              |
+| **데이터베이스**  | Prisma, PostgreSQL                 |
+| **인증**          | Passport.js, JWT                   |
+| **캐싱**          | Redis, Cache-Manager               |
+| **외부 API 연동** | Axios, Alpaca Trade API, Upbit API |
+| **개발 도구**     | ESLint, Prettier, Jest             |
 
-# test coverage
-$ npm run test:cov
-```
+---
 
-## Deployment
+## 🏛️ 아키텍처 및 기술적 결정 (Architectural Highlights)
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+MonkeyTraders API 서버는 단순한 데이터 제공을 넘어,  
+**확장성, 유연성, 유지보수성**을 극대화하기 위해 설계되었습니다.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 1️⃣ 클린 아키텍처 & 모듈러 디자인
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+**목적:**  
+계층 간 의존성을 명확히 하고, 비즈니스 로직을 외부 환경(프레임워크, DB 등)으로부터 보호하기 위함입니다.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+**구조:**
 
-## Resources
+- `financial`: 금융 데이터 처리의 핵심 비즈니스 로직
+- `gateway`: WebSocket 기반 실시간 통신
+- `database`: Prisma를 통한 데이터 영속성 관리
+- `auth`, `user`: 사용자 인증 및 정보 관리
 
-Check out a few resources that may come in handy when working with NestJS:
+각 모듈은 **명확한 책임(Separation of Concerns)** 을 가지며,  
+NestJS의 **의존성 주입(DI)** 을 통해 유연하게 상호작용합니다.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+---
 
-## Support
+### 2️⃣ 금융 데이터 프로바이더 추상화 (Provider Abstraction)
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+**문제점:**  
+Alpaca, Upbit 등 서로 다른 명세(specification)를 가진 외부 API를 직접 사용하면  
+비즈니스 로직이 특정 API에 종속되는 문제가 발생합니다.
 
-## Stay in touch
+**해결책:**  
+`ProviderRegistry`와 `FinancialProvider` 인터페이스를 도입하여 **어댑터 패턴(Adapter Pattern)** 을 구현했습니다.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- `FinancialProvider` 인터페이스는 `getAssets`, `getCandles` 등 **표준 메서드**를 정의
+- `AlpacaStockProvider`, `UpbitCryptoProvider` 등은 이를 구현하여  
+  각 API의 요청·응답 형식을 내부 표준에 맞게 **변환(Translation)**
 
-## License
+→ 이를 통해 상위 서비스(`FinancialService`)는  
+API 종류를 몰라도 **일관된 방식으로 데이터 요청 가능**
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+💡 새로운 API(예: Binance) 추가 시, 최소한의 코드 변경으로 손쉽게 확장 가능
+
+---
+
+### 3️⃣ 실시간 구독 관리 및 데이터 스트리밍
+
+**구조:**  
+`MarketGateway`는 클라이언트의 **구독(subscribe)** 및 **해제(unsubscribe)** 요청을 처리합니다.
+
+**오케스트레이션:**  
+`MarketSubscriptionService`가 “지휘자” 역할을 하여
+
+- 어떤 클라이언트가 어떤 채널(`AAPL`, `HotStocks` 등)을 구독 중인지 관리
+- 프로바이더에서 들어온 실시간 데이터를 해당 구독자에게만 정확히 전달 (브로드캐스팅)
+
+**RxJS 활용:**  
+프로바이더로부터 들어오는 데이터 스트림을 **Observable**로 처리하여
+
+- 데이터 병합(`merge`)
+- 필터링(`filter`)
+- 비동기 스트림 관리
+
+을 선언적이고 효율적으로 수행합니다.
+
+---
+
+## 📚 요약
+
+> MonkeyTraders API 서버는 **NestJS + TypeScript + Prisma + Redis + WebSocket** 기반의  
+> 실시간 금융 데이터 백엔드로,  
+> 클린 아키텍처와 어댑터 패턴을 통해 **유연한 데이터 통합과 고성능 스트리밍**을 구현했습니다.

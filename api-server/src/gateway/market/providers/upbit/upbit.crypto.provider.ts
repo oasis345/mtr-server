@@ -160,7 +160,7 @@ export class UpbitCryptoStreamProvider implements MarketStreamProvider, OnModule
     const tradeData: Trade = {
       id: trade.sequential_id.toString(),
       symbol: trade.code.replace('KRW-', ''),
-      timestamp: new Date(trade.trade_timestamp).toISOString(),
+      timestamp: trade.trade_timestamp,
       price: trade.trade_price,
       change: trade.change_price,
       volume: trade.trade_volume,

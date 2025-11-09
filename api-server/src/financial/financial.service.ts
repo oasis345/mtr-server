@@ -3,7 +3,17 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { AssetService } from './assets/asset.service';
 import { CryptoService } from './assets/crypto/crypto.service';
 import { StockService } from './assets/stock/stock.service';
-import { AssetQueryParams, CandleQueryParams, CandleResponse } from './types';
+import {
+  AssetQueryParams,
+  CandleQueryParams,
+  CandleResponse,
+  EnableExchangeStockCountry,
+  ExchangeRate,
+  StockMarketStatus,
+} from './types';
+import { checkMarketStatus } from './utils/stockMarketChecker';
+import { dayjs } from '@/common/utils/dayjs';
+import { CustomHttpService } from '@/common/http/http.service';
 
 @Injectable()
 export class FinancialService {
@@ -12,14 +22,10 @@ export class FinancialService {
   constructor(
     private readonly stockService: StockService,
     private readonly cryptoService: CryptoService,
+    private readonly httpService: CustomHttpService,
   ) {
     this.serviceMap.set(AssetType.STOCK, this.stockService);
     this.serviceMap.set(AssetType.CRYPTO, this.cryptoService);
-  }
-
-  prepareParams(params: AssetQueryParams): AssetQueryParams {
-    const symbols = this.normalizeSymbols(params.symbols);
-    return { ...params, symbols };
   }
 
   async getMarketData(params: AssetQueryParams): Promise<Asset[]> {
@@ -37,6 +43,30 @@ export class FinancialService {
     return await service.getTrades(params);
   }
 
+  getStockMarketStatus(country: EnableExchangeStockCountry): StockMarketStatus {
+    const result = checkMarketStatus(country, dayjs(new Date()));
+    return result;
+  }
+
+  async getExchangeRate(): Promise<ExchangeRate> {
+    const url =
+      'https://m.search.naver.com/p/csearch/content/qapirender.nhn?key=calculator&pkid=141&q=%ED%99%98%EC%9C%A8&where=m&u1=keb&u6=standardUnit&u7=0&u3=USD&u4=KRW&u8=down&u2=1';
+    const response: any = await this.httpService.get(url);
+    const usd = Number(response?.country[0].value);
+    const krw = parseFloat(response?.country[1].value.replace(/,/g, ''));
+
+    try {
+      const exchageRate: ExchangeRate = {
+        usd,
+        krw,
+        timestamp: new Date().toISOString(),
+      };
+      return exchageRate;
+    } catch (error) {
+      throw new BadRequestException('Failed to fetch Exchange rate');
+    }
+  }
+
   private prepareService({ assetType }: AssetQueryParams) {
     const service = this.serviceMap.get(assetType);
     if (!service) {
@@ -44,15 +74,5 @@ export class FinancialService {
     }
 
     return service;
-  }
-
-  private normalizeSymbols(input?: string | string[]): string[] {
-    const items = Array.isArray(input) ? input : input ? [input] : [];
-    const normalized = items
-      .flatMap(s => s.split(',')) // 콤마 분리
-      .map(s => s.trim().toUpperCase()) // 트림 + 대문자
-      .filter(Boolean);
-
-    return Array.from(new Set(normalized)).sort(); // 중복 제거 + 정렬
   }
 }

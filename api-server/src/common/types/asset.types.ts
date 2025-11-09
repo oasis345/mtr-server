@@ -81,7 +81,7 @@ export interface Candle {
 
 export interface Trade {
   id: string;
-  timestamp: string;
+  timestamp: number;
   price: number;
   change: number;
   changePercentage: number;

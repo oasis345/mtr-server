@@ -28,4 +28,16 @@ export class CustomHttpService {
       throw error;
     }
   }
+
+  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const start = Date.now();
+    try {
+      const { data: responseData, status } = await firstValueFrom(this.httpService.post<T>(url, data, config));
+      this.logger.log(`POST ${url} - ${status} (${Date.now() - start}ms)`);
+      return responseData;
+    } catch (error) {
+      this.logger.error(`POST ${url} failed - ${getErrorMessage(error)} (${Date.now() - start}ms)`);
+      throw error;
+    }
+  }
 }

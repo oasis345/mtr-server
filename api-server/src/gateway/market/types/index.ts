@@ -1,8 +1,10 @@
 import { Asset, Candle, Trade } from '@/common/types';
+import WebSocket from 'ws';
 
 export * from './alpaca.stream.types';
 export * from './provider.interface';
 export * from './upbit.stream.types';
+export * from './kis.stream.types';
 
 export enum MarketChannel {
   // 기존 채널 구독
@@ -11,11 +13,7 @@ export enum MarketChannel {
   LOSERS = 'losers',
   TOP_TRADED = 'topTraded',
 
-  // 개별 종목 구독 (사용자별)
-  USER_SYMBOLS = 'userSymbols',
-
-  // 개인 종목 클릭 (종목별)
-  SYMBOL = 'symbol',
+  SYMBOLS = 'symbols',
 }
 
 export enum ChannelDataType {
@@ -28,3 +26,7 @@ export interface MarketStreamData {
   dataType?: ChannelDataType;
   payload: Asset | Candle | Trade;
 }
+
+export const isOpenedSocket = (socket: WebSocket): socket is WebSocket => {
+  return socket?.readyState === WebSocket.OPEN;
+};
