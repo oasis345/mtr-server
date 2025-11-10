@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ChannelDataType, MarketStreamData, MarketStreamProvider } from '@/gateway/market/types';
 import { AssetType, ChartTimeframe } from '@/common/types';
-import { Observable, Subject } from 'rxjs';
+import { map, merge, Observable, Subject } from 'rxjs';
 import { KisStreamClient } from '@/gateway/market/providers/koreaInvestment/kis.stream.client';
 import { checkMarketStatus } from '@/financial/utils/stockMarketChecker';
 import { dayjs } from '@/common/utils/dayjs';
@@ -25,15 +25,35 @@ export class KoreaInvestmentStockStreamProvider implements MarketStreamProvider,
 
   async onModuleInit() {
     await this.streamClient.connect();
-    const rawMessageStream$ = this.streamClient.getMessageStream();
+    const rawMessageStream$: any = this.streamClient.getMessageStream();
+    const ticker$: any = rawMessageStream$.pipe(
+      map((message: any) => {
+        const TickerData: any = {
+          dataType: ChannelDataType.TICKER,
+          payload: {
+            assetType: AssetType.STOCK,
+            symbol: message.RSYM.slice(1),
+            price: message.LAST,
+            change: message.DIFF,
+            changePercentage: message.RATE,
+            volume: message.EVOL,
+            timestamp: new Date(message.XHMS).getTime(),
+            accTradeVolume: message.TVOL,
+            accTradePrice: message.TVOL * message.LAST,
+          },
+        };
 
-    rawMessageStream$.subscribe(message => {
-      console.log(message);
+        return TickerData;
+      }),
+    );
+    merge(ticker$).subscribe((marketData: any) => {
+      this.dataStream.next(marketData);
     });
   }
 
   async subscribe(symbols: string[], dataTypes: ChannelDataType[], timeframe?: ChartTimeframe): Promise<void> {
     const requestSymbols = symbols.map(symbol => this.createTickerKey(symbol));
+    requestSymbols.splice(0, 80);
 
     for (const requestSymbol of requestSymbols) {
       const message = {

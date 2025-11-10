@@ -1,4 +1,4 @@
-import { Asset, Candle, Trade } from '@/common/types';
+import { Candle, Quote, TickerData, Trade } from '@/common/types';
 import WebSocket from 'ws';
 
 export * from './alpaca.stream.types';
@@ -18,13 +18,14 @@ export enum MarketChannel {
 
 export enum ChannelDataType {
   TICKER = 'ticker',
+  QUOTE = 'quote',
   TRADE = 'trade',
   CANDLE = 'candle',
 }
 
 export interface MarketStreamData {
   dataType?: ChannelDataType;
-  payload: Asset | Candle | Trade;
+  payload: TickerData | Quote | Candle | Trade;
 }
 
 export const isOpenedSocket = (socket: WebSocket): socket is WebSocket => {

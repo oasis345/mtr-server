@@ -174,7 +174,7 @@ export class KisStockProvider extends BaseFinancialProvider {
               symbol: symbol,
               name: this.cleanCompanyName(name),
               exchange: parts[EXCHANGE_CODE_INDEX]?.trim(),
-              currency: parts[CURRENCY_INDEX]?.trim() || (countryCode === 'KR' ? 'KRW' : 'USD'),
+              currency: (parts[CURRENCY_INDEX]?.trim() as 'KRW' | 'USD') || (countryCode === 'KR' ? 'KRW' : 'USD'),
             });
           }
         } else {

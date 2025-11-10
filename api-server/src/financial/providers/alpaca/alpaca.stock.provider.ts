@@ -1,4 +1,4 @@
-import { Asset, AssetType, Candle, Trade } from '@/common/types/asset.types';
+import { Asset, AssetType, Candle, TickerData, Trade } from '@/common/types/asset.types';
 import { getErrorMessage } from '@/common/utils/error';
 import type {
   AlpacaAsset,
@@ -31,10 +31,6 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
     throw new Error('Method not implemented.');
   }
 
-  getTopTraded(params: AssetQueryParams): Promise<Asset[]> {
-    throw new Error('Method not implemented.');
-  }
-
   async getAssets(params: AssetQueryParams): Promise<Asset[]> {
     const searchParams = new URLSearchParams({
       status: 'active',
@@ -55,7 +51,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
     }
   }
   // 🎯 개별 종목 스냅샷 조회 (등락율 포함)
-  async getSnapshots(params: AssetQueryParams): Promise<Stock[]> {
+  async getSnapshots(params: AssetQueryParams): Promise<TickerData<Stock>[]> {
     if (!params.symbols || params.symbols.length === 0) {
       return [];
     }
@@ -75,9 +71,8 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
     }
   }
 
-  // 🎯 가장 활발한 종목 + 상세 정보 조합
-  async getMostActive(params: AssetQueryParams): Promise<Stock[]> {
-    const searchParams = new URLSearchParams({ top: String(params.limit ?? 100) });
+  async _getMostActive(params: AssetQueryParams, by: 'volume' | 'trades'): Promise<TickerData<Stock>[]> {
+    const searchParams = new URLSearchParams({ top: String(params.limit ?? 100), by });
     try {
       // 1단계: Most Active 목록 조회 (거래량 정보)
       const mostActiveResponse = await this.alpacaClient.getMarketData<AlpacaMostActiveResponse>(
@@ -101,7 +96,8 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
           ...snapshotData,
           assetType: AssetType.STOCK,
           symbol: mostActiveItem.symbol,
-          volume: mostActiveItem.volume || snapshotData?.volume || null,
+          accTradeVolume: mostActiveItem.volume,
+          accTradePrice: snapshotData.price * mostActiveItem.volume,
           currency: 'USD',
         };
       });
@@ -109,6 +105,18 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
       this.logger.error('Failed to get most active stocks from Alpaca', getErrorMessage(error));
       return [];
     }
+  }
+
+  // 🎯 가장 활발한 종목 + 상세 정보 조합
+  async getMostActive(params: AssetQueryParams): Promise<Stock[]> {
+    const response = await this._getMostActive(params, 'volume');
+    return response;
+  }
+
+  async getTopTraded(params: AssetQueryParams): Promise<Asset[]> {
+    const response = await this._getMostActive(params, 'trades');
+    response.sort((a, b) => b.accTradePrice - a.accTradePrice);
+    return response;
   }
 
   async getTopGainers(params: AssetQueryParams): Promise<Stock[]> {
@@ -156,20 +164,18 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
       volume: data.v,
       timestamp: data.t,
       tradeCount: data.n,
-      vwap: data.vw,
       assetType: AssetType.STOCK,
       currency: 'USD',
     };
   }
 
-  normalizeToMoverToStock(data: AlpacaMover): Stock {
-    const mover = data;
+  normalizeToMoverToStock(data: AlpacaMover): TickerData<Stock> {
     return {
       assetType: AssetType.STOCK,
-      symbol: mover.symbol,
-      price: mover.price,
-      change: mover.change,
-      changePercentage: mover.percent_change / 100,
+      symbol: data.symbol,
+      price: data.price,
+      change: data.change,
+      changePercentage: data.percent_change / 100,
       currency: 'USD',
     };
   }
@@ -285,7 +291,7 @@ export class AlpacaStockProvider extends BaseFinancialProvider {
     });
   }
 
-  private normalizeSnapshotToStock(symbol: string, snapshot: AlpacaSnapshot): Stock {
+  private normalizeSnapshotToStock(symbol: string, snapshot: AlpacaSnapshot): TickerData<Stock> {
     const currentPrice = snapshot.latestTrade?.p || snapshot.latestQuote?.ap || 0;
     const previousClose = snapshot.prevDailyBar?.c || 0;
     const change = previousClose ? currentPrice - previousClose : 0;

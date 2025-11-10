@@ -20,18 +20,6 @@ export interface AlpacaMoversResponse {
   losers: AlpacaMover[];
 }
 
-export interface AlpacaQuote {
-  ap: number; // Ask Price //가격 호가
-  as: number; // Ask Size //호가 건수
-  ax: string; // Ask Exchange //호가 거래소
-  bp: number; // Bid Price //가격 호가
-  bs: number; // Bid Size //호가 건수
-  bx: string; // Bid Exchange //호가 거래소
-  c: string[]; // Conditions //조건
-  t: string; // Timestamp //시간
-  z: string; // Tape //테이프
-}
-
 export interface AlpacaLatestQuotesResponse {
   quotes: Record<string, AlpacaQuote>;
 }

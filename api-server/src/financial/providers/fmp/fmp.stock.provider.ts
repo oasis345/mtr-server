@@ -1,4 +1,4 @@
-import { Asset, AssetType, Trade } from '@/common/types/asset.types';
+import { Asset, AssetType, TickerData, Trade } from '@/common/types/asset.types';
 import {
   AssetQueryParams,
   CandleQueryParams,
@@ -45,7 +45,7 @@ export class FmpStockProvider extends BaseFinancialProvider {
     throw new Error('Method not implemented.');
   }
 
-  normalizeToAsset(rawData: FmpRawStockData): Stock {
+  normalizeToAsset(rawData: FmpRawStockData): TickerData<Stock> {
     const name = rawData.companyName || rawData.name || '';
     const change = rawData.change ?? 0;
     const changePercentage = rawData.changePercentage ?? 0;

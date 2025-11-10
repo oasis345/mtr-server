@@ -198,7 +198,8 @@ export class UpbitCryptoStreamProvider implements MarketStreamProvider, OnModule
       open: opening_price,
       close: trade_price,
       volume: candle_acc_trade_volume,
-      vwap: candle_acc_trade_price,
+      candleAccTradePrice: candle_acc_trade_price,
+      candleAccTradeVolume: candle_acc_trade_volume,
       timestamp: candle_date_time_utc,
       currency: 'KRW',
     };

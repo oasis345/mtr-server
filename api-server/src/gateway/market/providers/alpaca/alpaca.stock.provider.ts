@@ -2,11 +2,7 @@ import { AssetType } from '@/common/types';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { filter, map, merge, Observable, Subject } from 'rxjs';
-import type {
-  AlpacaWebSocketStockQuoteMessage,
-  AlpacaWebSocketStockTradeMessage,
-  MarketStreamProvider,
-} from '../../types';
+import type { AlpacaWebSocketStockTradeMessage, MarketStreamProvider } from '../../types';
 import { ChannelDataType, MarketStreamData } from '../../types';
 import { AlpacaStreamClient } from './alpaca.stream.client';
 
@@ -31,12 +27,7 @@ export class AlpacaStockStreamProvider implements MarketStreamProvider, OnModule
       map(trade => this.normalizeTradeToMarketData(trade)),
     );
 
-    const quote$ = rawMessageStream$.pipe(
-      filter((msg): msg is AlpacaWebSocketStockQuoteMessage => msg.T === 'q'),
-      map(quote => this.normalizeQuoteToMarketData(quote)),
-    );
-
-    merge(trade$, quote$).subscribe(marketData => {
+    merge(trade$).subscribe(marketData => {
       this.dataStream.next(marketData);
     });
   }
@@ -46,9 +37,6 @@ export class AlpacaStockStreamProvider implements MarketStreamProvider, OnModule
 
     if (dataTypes.includes(ChannelDataType.TRADE)) {
       subscriptions.trades = symbols;
-    }
-    if (dataTypes.includes(ChannelDataType.TICKER)) {
-      subscriptions.quotes = symbols;
     }
 
     if (Object.keys(subscriptions).length > 0) {
@@ -91,23 +79,15 @@ export class AlpacaStockStreamProvider implements MarketStreamProvider, OnModule
     return {
       dataType: ChannelDataType.TRADE,
       payload: {
+        id: trade.i.toString(),
         assetType: AssetType.STOCK,
         symbol: trade.S,
         price: trade.p,
         volume: trade.s,
-        timestamp: trade.t,
-      },
-    };
-  }
-
-  private normalizeQuoteToMarketData(quote: AlpacaWebSocketStockQuoteMessage): MarketStreamData {
-    return {
-      dataType: ChannelDataType.TICKER,
-      payload: {
-        assetType: AssetType.STOCK,
-        symbol: quote.S,
-        price: quote.bp, // Bid Price를 대표 가격으로 사용
-        timestamp: quote.t,
+        change: 0,
+        changePercentage: 0,
+        side: trade.t === 'b' ? 'buy' : 'sell', // TODO alpaca change, pecentage, side
+        timestamp: new Date(trade.t).getTime(),
       },
     };
   }

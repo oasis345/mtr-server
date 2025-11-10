@@ -64,49 +64,49 @@ export abstract class BaseFinancialProvider implements FinancialProvider {
     };
   }
 
-  protected cleanCompanyName(name?: string): string {
-    if (!name) return '';
+  protected cleanCompanyName(name?: string) {
+    return name;
 
-    const stopWords = new Set([
-      // 주식 종류/형태 관련 (제거 대상)
-      'COMMON',
-      'ORDINARY',
-      'STOCK', // 추가
-      'WARRANT',
-      'SPONSORED',
-      'DEPOSITARY',
-      'RECEIPTS',
-      'UNSPONSORED', // 추가
-      'INC',
-      'LTD',
-      'CORP',
-      'CORPORATION',
-      'LLC',
-
-      // 법인 형태 (남겨둠 - Brand Search가 처리하도록)
-      // 'INC', 'LTD', 'CORP', 'CORPORATION', 'HOLDINGS', 'HLDGS',
-      // 'LLC', 'ASA', 'PLC', 'LP', 'SHARES',  'CLASS',   'ADR', 'ETF', 'FUND', 'TRUST',
-
-      // 기타 불필요 정보 (제거 대상)
-      // 'COM',
-      // 'NEW',
-      // 'PAR',
-    ]);
-
-    const words = name.split(/\s+/);
-    const resultWords = [];
-
-    for (const word of words) {
-      // 단어에서 특수문자 제거 후 대문자로 변환
-      const cleanWord = word.replace(/[.,()]/g, '').toUpperCase();
-
-      if (stopWords.has(cleanWord)) {
-        break; // 중단 단어를 만나면 루프 종료
-      }
-      resultWords.push(word);
-    }
-
-    // 단어들을 합치고, 끝에 있는 쉼표(,) 제거
-    return resultWords.join(' ').replace(/,$/, '').trim();
+    // const stopWords = new Set([
+    //   // 주식 종류/형태 관련 (제거 대상)
+    //   'COMMON',
+    //   'ORDINARY',
+    //   'STOCK', // 추가
+    //   'WARRANT',
+    //   'SPONSORED',
+    //   'DEPOSITARY',
+    //   'RECEIPTS',
+    //   'UNSPONSORED', // 추가
+    //   'INC',
+    //   'LTD',
+    //   'CORP',
+    //   'CORPORATION',
+    //   'LLC',
+    //
+    //   // 법인 형태 (남겨둠 - Brand Search가 처리하도록)
+    //   // 'INC', 'LTD', 'CORP', 'CORPORATION', 'HOLDINGS', 'HLDGS',
+    //   // 'LLC', 'ASA', 'PLC', 'LP', 'SHARES',  'CLASS',   'ADR', 'ETF', 'FUND', 'TRUST',
+    //
+    //   // 기타 불필요 정보 (제거 대상)
+    //   // 'COM',
+    //   // 'NEW',
+    //   // 'PAR',
+    // ]);
+    //
+    // const words = name.split(/\s+/);
+    // const resultWords = [];
+    //
+    // for (const word of words) {
+    //   // 단어에서 특수문자 제거 후 대문자로 변환
+    //   const cleanWord = word.replace(/[.,()]/g, '').toUpperCase();
+    //
+    //   if (stopWords.has(cleanWord)) {
+    //     break; // 중단 단어를 만나면 루프 종료
+    //   }
+    //   resultWords.push(word);
+    // }
+    //
+    // // 단어들을 합치고, 끝에 있는 쉼표(,) 제거
+    // return resultWords.join(' ').replace(/,$/, '').trim();
   }
 }

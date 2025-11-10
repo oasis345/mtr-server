@@ -1,5 +1,5 @@
 import { CustomHttpService } from '@/common/http/http.service';
-import { AssetType, Candle, Trade } from '@/common/types';
+import { AssetType, Candle, TickerData, Trade } from '@/common/types';
 import { getErrorMessage } from '@/common/utils/error';
 import { Injectable, Logger } from '@nestjs/common';
 import {
@@ -182,13 +182,15 @@ export class UpbitCryptoProvider extends BaseFinancialProvider {
     return tickersData;
   }
 
-  private normalizeToCrypto(data: UpbitTicker): Crypto {
+  private normalizeToCrypto(data: UpbitTicker): TickerData<Crypto> {
     return {
       symbol: data.market.replace('KRW-', ''),
       price: data.trade_price,
       change: data.change_price,
       changePercentage: data.signed_change_rate,
-      volume: data.acc_trade_volume_24h,
+      volume: data.trade_volume,
+      accTradeVolume: data.acc_trade_volume_24h,
+      accTradePrice: data.acc_trade_price_24h,
       currency: 'KRW',
       assetType: AssetType.CRYPTO,
     };
