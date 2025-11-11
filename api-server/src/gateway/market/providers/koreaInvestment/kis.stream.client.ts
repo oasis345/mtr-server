@@ -112,9 +112,7 @@ export class KisStreamClient {
           const jsonMessage: KoreaInvestmentSubscriptionControlMessage = JSON.parse(messageString);
           this.logger.debug('Received JSON control message:', jsonMessage);
           return;
-        } catch (error) {
-          this.logger.debug('Message is not JSON, attempting pipe-separated parsing.');
-        }
+        } catch (error) {}
         const parts = messageString.toString().split('|');
         if (parts.length >= 4) {
           const communicationType = parts[0];
