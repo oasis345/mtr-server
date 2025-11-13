@@ -1,15 +1,9 @@
-import {
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  UseGuards,
-} from '@nestjs/common';
-import { UserService } from './user.service';
-import { ApiResponse } from '@/common/dto/response.dto';
 import { CurrentUser } from '@/common/decorators/user.decorator';
-import { User } from '@prisma/client';
+import { ApiResponse } from '@/common/dto/response.dto';
+import { Controller, Get, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { User } from '@prisma/client';
+import { UserService } from './user.service';
 
 @Controller('user')
 export class UserController {

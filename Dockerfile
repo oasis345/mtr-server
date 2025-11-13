@@ -12,12 +12,12 @@ RUN npm install --force
 # 소스코드 복사
 COPY . .
 
+# Prisma Client 생성
+RUN npx prisma generate
 
 # 앱 빌드
 RUN npm run build
 
-# Prisma Client 생성
-RUN npx prisma generate
 
 # 2) 런타임 스테이지  
 FROM node:20-alpine AS runner
